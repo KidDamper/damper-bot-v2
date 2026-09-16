@@ -6,7 +6,7 @@ export const gameButtons = {
   slots: [[{text:'🎰 50',callback_data:'stake:slots:50'},{text:'🎰 100',callback_data:'stake:slots:100'}],[{text:'🎰 250',callback_data:'stake:slots:250'}]],
   penalty: [[{text:'⚽ 50',callback_data:'stake:penalty:50'},{text:'⚽ 100',callback_data:'stake:penalty:100'}],[{text:'⚽ 250',callback_data:'stake:penalty:250'}]],
   mines: [[{text:'💣 50',callback_data:'stake:mines:50'},{text:'💣 100',callback_data:'stake:mines:100'}],[{text:'💣 250',callback_data:'stake:mines:250'}]],
-  race: [[{text:'🏁 50',callback_data:'stake:race:50'},{text:'🏁 100',callback_data:'stake:race:100'}],[{text:'🏁 250',callback_data:'stake:250'}]]
+  race: [[{text:'🏁 50',callback_data:'stake:race:50'},{text:'🏁 100',callback_data:'stake:race:100'}],[{text:'🏁 250',callback_data:'stake:race:250'}]]
 };
 
 export function resolveWager(type,stake,choice='left'){
