@@ -17,6 +17,18 @@ export default {
       );
     }
 
+    if (url.pathname === "/telegram/webhook") {
+      if (request.method !== "POST") {
+        return new Response("Method Not Allowed", { status: 405 });
+      }
+
+      const update = await request.json();
+
+      console.log("Telegram update:", update);
+
+      return new Response("OK");
+    }
+
     return new Response("Not Found", { status: 404 });
   }
 };
