@@ -8,5 +8,16 @@
       "database_name": "damper-db",
       "database_id": "9c3924fe-9d61-40f9-b9b6-9460582a1a20"
     }
-  ]
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    },
+    "traces": {
+      "enabled": false
+    }
+  }
 }
