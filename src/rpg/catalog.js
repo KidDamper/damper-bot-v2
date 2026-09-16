@@ -1,0 +1,5 @@
+export const SKILLS=[['rasengan','Rasengan',10000],['chidori','Chidori',20000],['shadow_clone','Shadow Clone',30000],['amaterasu','Amaterasu',70000],['susanoo','Susanoo',100000],['black_flash','Black Flash',100000],['sharingan','Sharingan',150000],['ultra_instinct','Ultra Instinct',200000],['domain_expansion','Domain Expansion',300000]];
+export const WEAPONS=[['iron_blade','Iron Blade',5000,10],['steel_katana','Steel Katana',20000,25],['cursed_blade','Cursed Blade',50000,45],['crimson_executioner','Crimson Executioner',125000,75],['void_reaper','Void Reaper',300000,120]];
+export const ARMOR=[['traveler','Traveler',5000,10],['iron_guard','Iron Guard',20000,25],['cursed_armor','Cursed Armor',50000,45],['crimson_armor','Crimson Armor',125000,75],['void_armor','Void Armor',300000,120]];
+export const ACCESSORIES=[['lucky_charm','Lucky Charm',10000],['energy_core','Energy Core',30000],['cursed_eye','Cursed Eye',100000],['phantom_wings','Phantom Wings',150000],['void_core','Void Core',300000]];
+export const NUMBERED=Array.from({length:16},(_,i)=>({id:i+1,name:`Damper Artifact #${String(i+1).padStart(2,'0')}`}));
