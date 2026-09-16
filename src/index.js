@@ -43,6 +43,21 @@ async function sendPhoto(token, chatId, photo, caption, replyMarkup = null) {
   await telegramApi(token, "sendPhoto", body);
 }
 
+async function editMessage(token, chatId, messageId, text, replyMarkup = null) {
+  const body = {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "Markdown"
+  };
+
+  if (replyMarkup) {
+    body.reply_markup = replyMarkup;
+  }
+
+  await telegramApi(token, "editMessageText", body);
+}
+
 async function answerCallback(token, callbackQueryId, text = "") {
   await telegramApi(token, "answerCallbackQuery", {
     callback_query_id: callbackQueryId,
@@ -62,9 +77,9 @@ async function checkMembership(token, channel, userId) {
     return false;
   }
 
-  const status = data.result?.status;
-
-  return ["creator", "administrator", "member"].includes(status);
+  return ["creator", "administrator", "member"].includes(
+    data.result?.status
+  );
 }
 
 function generateDamperId() {
@@ -96,7 +111,7 @@ function joinKeyboard() {
   };
 }
 
-function menuKeyboard() {
+function mainMenuKeyboard() {
   return {
     inline_keyboard: [
       [
@@ -119,10 +134,79 @@ function menuKeyboard() {
   };
 }
 
+function backKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: "⬅️ BACK", callback_data: "menu_main" }
+      ]
+    ]
+  };
+}
+
+const sections = {
+  menu_games: {
+    title: "🎮 *GAMES*",
+    text:
+      "Choose a game category.\n\n" +
+      "Classic, Brain, Reaction, Social and Penalty games will live here."
+  },
+
+  menu_economy: {
+    title: "💰 *ECONOMY*",
+    text:
+      "Manage your Damper Coins.\n\n" +
+      "Balance, Daily, Transfers and your economy activity."
+  },
+
+  menu_rpg: {
+    title: "⚔️ *RPG*",
+    text:
+      "Enter the Damper RPG.\n\n" +
+      "Battle → Earn XP → Level Up → Equip → Become stronger."
+  },
+
+  menu_shop: {
+    title: "🛒 *SHOP*",
+    text:
+      "Welcome to the Damper Shop.\n\n" +
+      "Cards, Pets, Numbered Items and seasonal content."
+  },
+
+  menu_vault: {
+    title: "🗃️ *VAULT*",
+    text:
+      "Your personal collection.\n\n" +
+      "Cards, Pets, Numbered Items, Achievements, Titles and RPG Inventory."
+  },
+
+  menu_leaderboard: {
+    title: "📊 *LEADERBOARD*",
+    text:
+      "See the players making their mark.\n\n" +
+      "Richest, XP, Wins, Games, RPG, Collector and more."
+  },
+
+  menu_profile: {
+    title: "👤 *PROFILE*",
+    text:
+      "Your Damper identity.\n\n" +
+      "Use /profile to view your account information."
+  },
+
+  menu_help: {
+    title: "❓ *HELP*",
+    text:
+      "Need help?\n\n" +
+      "Use /help to see available commands and learn how THE DAMPER_BOT works."
+  }
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Health check
     if (url.pathname === "/") {
       const result = await env.DB
         .prepare(
@@ -145,6 +229,7 @@ export default {
       );
     }
 
+    // Telegram webhook
     if (url.pathname === "/telegram/webhook") {
       if (request.method !== "POST") {
         return new Response("Method Not Allowed", { status: 405 });
@@ -158,9 +243,11 @@ export default {
       if (update.callback_query) {
         const callback = update.callback_query;
         const chatId = callback.message?.chat?.id;
+        const messageId = callback.message?.message_id;
         const userId = callback.from?.id;
+        const data = callback.data;
 
-        if (callback.data === "check_membership") {
+        if (data === "check_membership") {
           const memeJoined = await checkMembership(
             env.TELEGRAM_BOT_TOKEN,
             MEME_CHANNEL,
@@ -196,9 +283,7 @@ export default {
                   .bind(damperId)
                   .first();
 
-                if (!existing) {
-                  break;
-                }
+                if (!existing) break;
               }
 
               const createdAt = Math.floor(Date.now() / 1000);
@@ -276,26 +361,71 @@ export default {
 Your journey starts here.
 
 \`/menu\` → Enter the bot`,
-              menuKeyboard()
+              mainMenuKeyboard()
             );
           } else {
             await answerCallback(
               env.TELEGRAM_BOT_TOKEN,
               callback.id,
-              "You haven't joined both channels yet."
+              "Join both channels first."
             );
 
-            await sendMessage(
+            await editMessage(
               env.TELEGRAM_BOT_TOKEN,
               chatId,
+              messageId,
               `🔒 *ACCESS LOCKED*
 
-You need to join both channels before entering THE DAMPER_BOT V2.
+You need to join both official channels before entering THE DAMPER_BOT V2.
 
 Join both, then press *CHECK MEMBERSHIP* again.`,
               joinKeyboard()
             );
           }
+
+          return new Response("OK");
+        }
+
+        /*
+         * MAIN MENU
+         */
+        if (data === "menu_main") {
+          await answerCallback(
+            env.TELEGRAM_BOT_TOKEN,
+            callback.id
+          );
+
+          await editMessage(
+            env.TELEGRAM_BOT_TOKEN,
+            chatId,
+            messageId,
+            `🔥 *THE DAMPER_BOT V2*
+
+Choose your destination.`,
+            mainMenuKeyboard()
+          );
+
+          return new Response("OK");
+        }
+
+        /*
+         * MENU SECTIONS
+         */
+        if (sections[data]) {
+          await answerCallback(
+            env.TELEGRAM_BOT_TOKEN,
+            callback.id
+          );
+
+          await editMessage(
+            env.TELEGRAM_BOT_TOKEN,
+            chatId,
+            messageId,
+            `${sections[data].title}\n\n${sections[data].text}`,
+            backKeyboard()
+          );
+
+          return new Response("OK");
         }
 
         return new Response("OK");
@@ -355,9 +485,7 @@ After joining, press *CHECK MEMBERSHIP*.`,
                 .bind(damperId)
                 .first();
 
-              if (!existing) {
-                break;
-              }
+              if (!existing) break;
             }
 
             const createdAt = Math.floor(Date.now() / 1000);
@@ -435,7 +563,18 @@ After joining, press *CHECK MEMBERSHIP*.`,
 Your journey starts here.
 
 \`/menu\` → Enter the bot`,
-            menuKeyboard()
+            mainMenuKeyboard()
+          );
+        }
+
+        if (text === "/menu") {
+          await sendMessage(
+            env.TELEGRAM_BOT_TOKEN,
+            chatId,
+            `🔥 *THE DAMPER_BOT V2*
+
+Choose your destination.`,
+            mainMenuKeyboard()
           );
         }
       }
