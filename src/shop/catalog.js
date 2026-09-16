@@ -18,6 +18,10 @@ export const PETS = [
 ];
 
 export const NUMBERED_DRAW_PRICE = 250000;
+export const NUMBERED_COUNT = 16;
 
-export function cardTier(tier) { return CARDS.filter(x => x.tier === tier); }
+export function cardTier(tier) { return CARDS.filter(x => x.tier === String(tier).toUpperCase()); }
+export function cardPrice(tier) { const c=cardTier(tier); return c[0]?.price||null; }
 export function petCatalog() { return PETS; }
+export function petById(id) { return PETS.find(x=>x.id===id)||null; }
+export function numberedMissReward(allOwned=false) { return allOwned ? {coins:100000,xp:500} : {coins:5000,xp:25}; }
