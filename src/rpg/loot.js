@@ -30,8 +30,7 @@ export async function grantLoot(env,userId,loot){
   if(!loot)return {duplicate:false,loot:null};
   const existing=await env.DB.prepare('SELECT quantity FROM rpg_inventory WHERE user_id=? AND item_id=?').bind(userId,loot.id).first();
   if(existing){
-    await env.DB.prepare('UPDATE rpg_inventory SET quantity=quantity+1 WHERE user_id=? AND item_id=?').bind(userId,loot.id).run();
-    return {duplicate:true,loot,quantity:Number(existing.quantity)+1};
+    return {duplicate:true,loot,quantity:Number(existing.quantity),converted:{coins:250,xp:10}};
   }
   await env.DB.prepare('INSERT INTO rpg_inventory(user_id,item_id,item_type,quantity) VALUES(?,?,?,1)').bind(userId,loot.id,'LOOT').run();
   return {duplicate:false,loot,quantity:1};
@@ -39,6 +38,6 @@ export async function grantLoot(env,userId,loot){
 
 export function lootText(result){
   if(!result?.loot)return '🎁 No loot this time.';
-  if(result.duplicate)return `♻️ Duplicate drop: *${result.loot.name}* (${result.loot.rarity})\nConverted to an additional inventory copy.`;
+  if(result.duplicate)return `♻️ Duplicate drop: *${result.loot.name}* (${result.loot.rarity})\nConverted to +${result.converted?.coins||250} Coins and +${result.converted?.xp||10} RPG XP.`;
   return `🎁 *LOOT DROP*\n${result.loot.name}\nRarity: *${result.loot.rarity}*`;
 }
