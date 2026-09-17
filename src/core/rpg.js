@@ -1,4 +1,17 @@
-export const RPG={maxLevel:50,base:{hp:100,atk:20,def:10,energy:50,speed:10},enemies:[{name:'Training Dummy',tier:'EASY',level:1,hp:60,atk:10,def:5},{name:'Street Beast',tier:'EASY',level:5,hp:110,atk:16,def:8},{name:'Iron Warden',tier:'MEDIUM',level:12,hp:230,atk:28,def:16},{name:'Shadow Ronin',tier:'HARD',level:20,hp:420,atk:44,def:25},{name:'Void Knight',tier:'ELITE',level:30,hp:700,atk:65,def:38},{name:'Blood Beast',tier:'BOSS',level:35,hp:1000,atk:75,def:48},{name:'Thunder Oni',tier:'BOSS',level:40,hp:1200,atk:88,def:55},{name:'Cursed Seer',tier:'BOSS',level:45,hp:1450,atk:100,def:62},{name:'Void Emperor',tier:'BOSS',level:50,hp:1800,atk:120,def:70}]};
+const enemy=(name,tier,level,hp,atk,def,speed)=>({name,tier,level,hp,atk,def,speed});
+
+export const RPG={maxLevel:50,base:{hp:100,atk:20,def:10,energy:50,speed:10},enemies:[
+  enemy('Training Dummy','EASY',1,60,10,5,6),
+  enemy('Street Beast','EASY',5,110,16,8,10),
+  enemy('Iron Warden','MEDIUM',12,230,28,16,14),
+  enemy('Shadow Ronin','HARD',20,420,44,25,20),
+  enemy('Void Knight','ELITE',30,700,65,38,27),
+  enemy('Blood Beast','BOSS',35,1000,75,48,25),
+  enemy('Thunder Oni','BOSS',40,1200,88,55,30),
+  enemy('Cursed Seer','BOSS',45,1450,100,62,35),
+  enemy('Void Emperor','BOSS',50,1800,120,70,40)
+]};
+
 export function rpgStats(level=1){const l=Math.max(1,Math.min(RPG.maxLevel,level));return{hp:100+5*(l-1),atk:20+(l-1),def:10+Math.floor((l-1)/2),energy:50+2*(l-1),speed:10+Math.floor((l-1)/5)};}
 export function damage(atk,def){return Math.max(1,Math.floor(atk-def/2));}
 export function crit(){return Math.random()<0.10;}
