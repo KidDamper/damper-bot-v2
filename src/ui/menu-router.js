@@ -14,3 +14,8 @@ export function menuPage(name,{title,body='',back='menu_main'}={}){
 export function hasMenu(name){return Array.isArray(MENU_CONFIG[name]);}
 
 export function menuNames(){return Object.keys(MENU_CONFIG);}
+
+export function callbackToMenu(callback){
+  const entry=Object.entries(MENU_CONFIG).find(([,items])=>items.some(([,value])=>value===callback));
+  return entry?entry[0]:null;
+}
