@@ -17,6 +17,14 @@ export async function finishSession(env,id,result){
   return !!r.meta?.changes;
 }
 export async function expireSessions(env){
-  return env.DB.prepare("UPDATE game_sessions SET result='EXPIRED' WHERE reward_applied=0 AND expires_at<? AND result IS NULL").bind(now()).run();
+  const rows=await env.DB.prepare('SELECT id,player_id,stake FROM game_sessions WHERE reward_applied=0 AND expires_at<? AND result IS NULL').bind(now()).all();
+  let expired=0;
+  for(const s of rows.results||[]){
+    const claim=await env.DB.prepare("UPDATE game_sessions SET result='EXPIRED',reward_applied=1 WHERE id=? AND reward_applied=0 AND result IS NULL").bind(s.id).run();
+    if(!claim.meta?.changes)continue;
+    if(Number(s.stake)>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(Number(s.stake),s.player_id).run();
+    expired++;
+  }
+  return {expired};
 }
 export function sessionId(type){return `${type.toLowerCase()}_${crypto.randomUUID().replaceAll('-','').slice(0,12)}`;}
