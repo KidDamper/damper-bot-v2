@@ -1,5 +1,5 @@
 import { socialMenu, socialPrompt } from './social-ui.js';
-import { reactionMenu, startReactionTest, resolveReactionTest, startFastest, triggerFastest, tapFastest } from './reaction-ui.js';
+import { reactionMenu, startReactionTest, resolveReactionTest, startFastest, triggerFastest, tapFastest, resolveTypeChallenge } from './reaction-ui.js';
 
 const SAFE={
   social:['social_main','social_truth','social_dare','social_random','social_hotseat','social_impostor'],
@@ -34,6 +34,9 @@ export function runSafeGameAction(route,{state=null,userId=null,now=Date.now(),p
   if(route.type==='FASTEST_START')return startFastest(now);
   if(route.type==='FASTEST_GO')return triggerFastest(state,now);
   if(route.type==='FASTEST_TAP')return tapFastest(state,userId,now);
+  if(route.type==='TYPE_CHALLENGE')return resolveTypeChallenge({completed:true});
+  if(route.type==='REACTION_GO')return triggerFastest(state,now);
+  if(route.type==='REACTION_TAP')return tapFastest(state,userId,now);
   return null;
 }
 
