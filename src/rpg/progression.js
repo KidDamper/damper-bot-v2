@@ -1,4 +1,5 @@
 import { rpgStats, levelCost, RPG } from '../core/rpg.js';
+import { checkProgress } from '../achievements/progress.js';
 
 export async function getRpgProfile(env,userId){
   const row=await env.DB.prepare(`SELECT x.rpg_xp,x.rpg_level,u.damper_id,u.username FROM xp x JOIN users u ON u.id=x.user_id WHERE x.user_id=?`).bind(userId).first();
@@ -12,6 +13,7 @@ export async function addRpgXp(env,userId,amount){
   const n=Math.max(0,Math.floor(Number(amount)||0));
   if(!n)return getRpgProfile(env,userId);
   await env.DB.prepare('UPDATE xp SET rpg_xp=rpg_xp+? WHERE user_id=?').bind(n,userId).run();
+  await checkProgress(env,userId);
   return getRpgProfile(env,userId);
 }
 
@@ -38,5 +40,6 @@ export async function levelUpRpg(env,userId){
     await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(coinCost,userId).run();
     throw e;
   }
+  await checkProgress(env,userId);
   return {ok:true,level:next,cost:[xpCost,coinCost],stats:rpgStats(next)};
 }
