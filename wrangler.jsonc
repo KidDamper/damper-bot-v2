@@ -1,6 +1,6 @@
 {
   "name": "damper-bot-v2",
-  "main": "src/entrypoint.js",
+  "main": "src/safe-entrypoint.js",
   "compatibility_date": "2026-09-16",
   "d1_databases": [
     {
