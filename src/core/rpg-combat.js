@@ -1,12 +1,15 @@
 import { RPG, rpgStats, damage, crit, runSuccess } from './rpg.js';
 
+const enemySpeed=(enemy)=>Number.isFinite(Number(enemy?.speed))?Number(enemy.speed):Number(enemy?.level||1)+5;
+
 export function createBattle(level=1, enemyIndex=null, bonuses={}){
   const stats=rpgStats(level);
   const pool=RPG.enemies.filter(e=>e.level<=Math.min(50,level+5));
-  const enemy=enemyIndex==null?(pool[Math.floor(Math.random()*pool.length)]||RPG.enemies[0]):RPG.enemies[enemyIndex]||RPG.enemies[0];
+  const baseEnemy=enemyIndex==null?(pool[Math.floor(Math.random()*pool.length)]||RPG.enemies[0]):RPG.enemies[enemyIndex]||RPG.enemies[0];
+  const enemy={...baseEnemy,speed:enemySpeed(baseEnemy),maxHp:baseEnemy.hp,burn:0};
   const speed=stats.speed+(bonuses.speed||0),def=stats.def+(bonuses.def||0),atk=stats.atk+(bonuses.atk||0),maxEnergy=stats.energy+(bonuses.energy||0);
   const first=speed>enemy.speed?'PLAYER':speed<enemy.speed?'ENEMY':Math.random()<0.5?'PLAYER':'ENEMY';
-  return {level,player:{hp:stats.hp,maxHp:stats.hp,atk,def,energy:maxEnergy,maxEnergy,speed,dodgeBonus:Math.min(.30,.05+(bonuses.dodge||0)),defending:false,guardTurns:0,domainTurns:0},enemy:{...enemy,maxHp:enemy.hp,burn:0},turn:first,status:'ACTIVE',log:[`Speed check: ${first==='PLAYER'?'you act first.':'the enemy acts first.'`]};
+  return {level,player:{hp:stats.hp,maxHp:stats.hp,atk,def,energy:maxEnergy,maxEnergy,speed,dodgeBonus:Math.min(.30,.05+(bonuses.dodge||0)),damageBoost:Math.max(0,bonuses.damageBoost||0),defending:false,guardTurns:0,domainTurns:0},enemy,turn:first,status:'ACTIVE',log:[`Speed check: ${first==='PLAYER'?'you act first.':'the enemy acts first.'`]};
 }
 
 function enemyAttack(battle){
@@ -26,11 +29,10 @@ function enemyAttack(battle){
 }
 
 function playerHit(battle,amount,label){
-  const miss=battle.player.domainTurns>0?false:false;
-  if(miss)return enemyAttack({...battle,log:[...battle.log,`${label} missed.`]});
-  const enemy={...battle.enemy,hp:Math.max(0,battle.enemy.hp-amount)};
+  const boosted=Math.max(1,Math.floor(amount*(1+(battle.player.damageBoost||0))));
+  const enemy={...battle.enemy,hp:Math.max(0,battle.enemy.hp-boosted)};
   const domainTurns=Math.max(0,(battle.player.domainTurns||0)-1);
-  const next={...battle,enemy,player:{...battle.player,domainTurns},log:[...battle.log,`${label} dealt ${amount} damage.`]};
+  const next={...battle,enemy,player:{...battle.player,domainTurns},log:[...battle.log,`${label} dealt ${boosted} damage.`]};
   if(enemy.hp<=0)return {...next,status:'WON',turn:null};
   return enemyAttack(next);
 }
@@ -68,8 +70,7 @@ export function useSkill(battle,skill){
   if(skill==='Sharingan')player={...player,dodgeBonus:Math.min(.30,(player.dodgeBonus||.05)+.15)};
   if(skill==='Ultra Instinct')player={...player,dodgeBonus:.30};
   if(skill==='Domain Expansion')player={...player,domainTurns:3};
-  const next={...battle,player,enemy};
-  return playerHit(next,amount,skill);
+  return playerHit({...battle,player,enemy},amount,skill);
 }
 
 export function endBattleSummary(battle){return {status:battle?.status||'UNKNOWN',enemy:battle?.enemy?.name||null,hp:battle?.player?.hp||0,log:(battle?.log||[]).slice(-4)};}
