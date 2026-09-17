@@ -25,15 +25,21 @@ async function allowed(env,id){
 
 const back=()=>({inline_keyboard:[[{text:'⬅️ BACK',callback_data:'menu_games'}]]});
 const reactionMenu=()=>({text:'⚡ *REACTION GAMES*\n\nFast, simple and no wager required.',reply_markup:{inline_keyboard:[[{text:'⚡ REACTION TEST',callback_data:'safe_reaction_test'}],[{text:'⬅️ BACK',callback_data:'menu_games'}]]}});
+const socialView=()=>socialMenu();
 
 async function safeCallback(env,q){
   const d=String(q.data||'');
-  if(!d.startsWith('safe_')&&!d.startsWith('social_'))return false;
+  const supported=d==='games_social'||d==='games_reaction'||d.startsWith('safe_')||d.startsWith('social_');
+  if(!supported)return false;
   await ack(env,q.id);
   const chat=q.message?.chat?.id,mid=q.message?.message_id;
   if(!(await allowed(env,q.from.id)))return edit(env,chat,mid,'🔒 *ACCESS LOCKED*\n\nJoin both channels, then check membership.',join());
 
-  if(d==='social_main')return edit(env,chat,mid,...Object.values(socialMenu()));
+  if(d==='games_social'||d==='social_main'){
+    const view=socialView();
+    return edit(env,chat,mid,view.text,view.reply_markup);
+  }
+  if(d==='games_reaction')return edit(env,chat,mid,...Object.values(reactionMenu()));
   if(d==='social_truth'||d==='social_dare'||d==='social_random'){
     const r=socialPrompt(d.slice(7),[]);
     return edit(env,chat,mid,`🎭 *${r.type}*\n\n${r.prompt}`,{inline_keyboard:[[{text:'🔄 AGAIN',callback_data:d}],[{text:'⬅️ SOCIAL',callback_data:'social_main'}]]});
@@ -47,7 +53,7 @@ async function safeCallback(env,q){
   if(d==='safe_reaction_test'){
     const round=startReactionTest(Date.now());
     const id=`${Date.now()}_${round.goAt}`;
-    return edit(env,chat,mid,'⚡ *REACTION TEST*\n\nWait for the GO button, then tap it as quickly as you can.',{inline_keyboard:[[{text:'🟢 GO!',callback_data:`safe_reaction_go:${id}:${round.goAt}`}],[{text:'❌ CANCEL',callback_data:'social_main'}]]});
+    return edit(env,chat,mid,'⚡ *REACTION TEST*\n\nWait for the GO button, then tap it as quickly as you can.',{inline_keyboard:[[{text:'🟢 GO!',callback_data:`safe_reaction_go:${id}:${round.goAt}`}],[{text:'❌ CANCEL',callback_data:'games_reaction'}]]});
   }
   if(d.startsWith('safe_reaction_go:')){
     const [,id,goAt]=d.split(':');
