@@ -14,27 +14,40 @@ const DARE=[
   'Invent a ridiculous superhero name for yourself.'
 ];
 
+const unique=(players=[])=>[...new Set((players||[]).map(String).filter(Boolean))];
+const boundedRandom=(random=Math.random)=>Math.max(0,Math.min(0.999999,Number(random())||0));
+
 export function truthOrDare(type='random',random=Math.random){
   const mode=String(type||'random').toLowerCase();
-  const pick=(items)=>items[Math.floor(Math.max(0,Math.min(0.999999,Number(random())||0))*items.length)];
+  const pick=(items)=>items[Math.floor(boundedRandom(random)*items.length)];
   if(mode==='truth')return {type:'TRUTH',prompt:pick(TRUTH)};
   if(mode==='dare')return {type:'DARE',prompt:pick(DARE)};
-  return random()<0.5?{type:'TRUTH',prompt:pick(TRUTH)}:{type:'DARE',prompt:pick(DARE)};
+  return boundedRandom(random)<0.5?{type:'TRUTH',prompt:pick(TRUTH)}:{type:'DARE',prompt:pick(DARE)};
 }
 
 export function hotSeat(players=[],round=1){
-  const list=[...new Set((players||[]).map(String).filter(Boolean))];
+  const list=unique(players);
   if(!list.length)return {ok:false,error:'NO_PLAYERS'};
-  const index=(Math.max(1,Number(round)||1)-1)%list.length;
-  return {ok:true,playerId:list[index],round:Math.max(1,Number(round)||1),players:list};
+  const r=Math.max(1,Number(round)||1);
+  return {ok:true,playerId:list[(r-1)%list.length],round:r,players:list};
 }
 
 export function impostorRound(players=[],random=Math.random){
-  const list=[...new Set((players||[]).map(String).filter(Boolean))];
+  const list=unique(players);
   if(list.length<3)return {ok:false,error:'NEED_THREE_PLAYERS'};
-  const index=Math.floor(Math.max(0,Math.min(0.999999,Number(random())||0))*list.length);
-  const impostor=list[index];
-  return {ok:true,players:list,impostor,clueRequired:true};
+  return {ok:true,players:list,impostor:list[Math.floor(boundedRandom(random)*list.length)],clueRequired:true};
+}
+
+export function socialStart(type,players=[]){
+  const list=unique(players),game=String(type||'').toUpperCase();
+  if(game==='TRUTH_DARE'||game==='HOT_SEAT')return list.length>=2?{ok:true,type:game,players:list,turn:0}:{ok:false,error:'NEED_TWO_PLAYERS'};
+  if(game==='IMPOSTOR')return list.length>=3?{ok:true,type:game,players:list,impostor:null,revealed:false}:{ok:false,error:'NEED_THREE_PLAYERS'};
+  return {ok:false,error:'UNKNOWN_GAME'};
+}
+
+export function nextSocialTurn(state){
+  if(!state?.players?.length)return state;
+  return {...state,turn:(Number(state.turn||0)+1)%state.players.length};
 }
 
 export function socialHelp(){
