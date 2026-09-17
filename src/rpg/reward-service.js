@@ -4,6 +4,11 @@ import { addRpgXp } from './progression.js';
 
 export async function settleRpgBattle(env,userId,battle){
   const status=battle?.status;
+  const battleId=battle?.id||battle?.battleId;
+  if(battleId){
+    const claim=await env.DB.prepare(`UPDATE rpg_battles SET reward_applied=1 WHERE id=? AND user_id=? AND reward_applied=0`).bind(String(battleId),userId).run();
+    if(!claim.meta?.changes)return {status,duplicate:true,reward:null,loot:null};
+  }
   const reward=status==='WON'?victoryReward(battle.enemy):status==='LOST'?defeatReward():escapedReward();
   if(reward.coins>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(reward.coins,userId).run();
   await addRpgXp(env,userId,reward.xp);
@@ -16,5 +21,5 @@ export async function settleRpgBattle(env,userId,battle){
       await addRpgXp(env,userId,xp);
     }
   }
-  return {status,reward,loot};
+  return {status,reward,loot,duplicate:false};
 }
