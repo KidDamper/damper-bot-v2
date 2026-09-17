@@ -16,6 +16,15 @@ export async function finishSession(env,id,result){
   const r=await env.DB.prepare('UPDATE game_sessions SET result=?,reward_applied=1 WHERE id=? AND reward_applied=0').bind(JSON.stringify(result),id).run();
   return !!r.meta?.changes;
 }
+export async function cancelSession(env,id,playerId){
+  const s=await env.DB.prepare('SELECT player_id,stake FROM game_sessions WHERE id=? AND result IS NULL AND reward_applied=0').bind(id).first();
+  if(!s||String(s.player_id)!==String(playerId))return {ok:false,error:'SESSION_NOT_ACTIVE'};
+  const claim=await env.DB.prepare("UPDATE game_sessions SET result='CANCELLED',reward_applied=1 WHERE id=? AND player_id=? AND reward_applied=0 AND result IS NULL").bind(id,playerId).run();
+  if(!claim.meta?.changes)return {ok:false,error:'SESSION_ALREADY_RESOLVED'};
+  const stake=Number(s.stake)||0;
+  if(stake>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(stake,playerId).run();
+  return {ok:true,refunded:stake};
+}
 export async function expireSessions(env){
   const rows=await env.DB.prepare('SELECT id,player_id,stake FROM game_sessions WHERE reward_applied=0 AND expires_at<? AND result IS NULL').bind(now()).all();
   let expired=0;
