@@ -10,4 +10,4 @@ export async function rpgStart(env,userId,chatId){return startRpgBattle(env,user
 export async function rpgAction(env,id,userId,action,skill){return applyRpgAction(env,id,userId,action,skill);}
 export async function rpgProfile(env,userId){return getRpgProfile(env,userId);}
 export async function rpgLevelUp(env,userId){return levelUpRpg(env,userId);}
-export function rpgBattleView(result){const reward=result.reward?`\n\n💰 +${result.reward.reward.coins} Coins\n✨ +${result.reward.reward.xp} RPG XP`:'';return rpgMessage(result.battle)+reward;}
+export function rpgBattleView(result){const reward=result.reward?`\n\n💰 +${result.reward.coins} Coins\n✨ +${result.reward.xp} RPG XP`:'';return rpgMessage(result.battle)+reward;}
