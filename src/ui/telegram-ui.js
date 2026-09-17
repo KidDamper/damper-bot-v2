@@ -1,12 +1,12 @@
-import { UI_THEME } from './theme.js';
+import { THEME, bannerId, label } from './theme.js';
 
 export const inlineKeyboard=(rows=[])=>({inline_keyboard:rows});
 
-export function bannerPhoto(){return UI_THEME.banner?.fileId||null;}
+export function bannerPhoto(key='main'){return bannerId(key);}
 
-export function brandedText(body='',{title=UI_THEME.name,footer=true}={}){
+export function brandedText(body='',{title=THEME.brand,footer=true}={}){
   const head=title?`*${title}*\n\n`:'';
-  const foot=footer&&UI_THEME.footer?`\n\n_${UI_THEME.footer}_`:'';
+  const foot=footer&&THEME.footer?`\n\n_${THEME.footer}_`:'';
   return `${head}${body}${foot}`;
 }
 
@@ -22,3 +22,5 @@ export function menuPage({title,body='',rows=[],back='menu_main'}={}){
   if(back)finalRows.push(row(backButton(back)));
   return {text:brandedText(body,{title}),reply_markup:inlineKeyboard(finalRows)};
 }
+
+export function themedLabel(key,fallback){return label(key,fallback);}
