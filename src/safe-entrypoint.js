@@ -1,6 +1,7 @@
 import base from './entrypoint.js';
 import { socialMenu, socialPrompt } from './games/social-ui.js';
 import { startReactionTest, resolveReactionTest } from './games/reaction-service.js';
+import { MENU_CONFIG } from './ui/menu-config.js';
 
 const MEME='@nah_idmeme';
 const UPDATES='@Updamper_bot';
@@ -26,6 +27,13 @@ async function allowed(env,id){
 const back=()=>({inline_keyboard:[[{text:'⬅️ BACK',callback_data:'menu_games'}]]});
 const reactionMenu=()=>({text:'⚡ *REACTION GAMES*\n\nFast, simple and no wager required.',reply_markup:{inline_keyboard:[[{text:'⚡ REACTION TEST',callback_data:'safe_reaction_test'}],[{text:'⬅️ BACK',callback_data:'menu_games'}]]}});
 const socialView=()=>socialMenu();
+
+function mainMenu(){
+  const items=MENU_CONFIG.main||[];
+  const rows=[];
+  for(let i=0;i<items.length;i+=2) rows.push(items.slice(i,i+2).map(([text,callback_data])=>({text,callback_data})));
+  return {inline_keyboard:rows};
+}
 
 async function safeCallback(env,q){
   const d=String(q.data||'');
@@ -71,6 +79,10 @@ export default {
       const clone=request.clone();
       try{
         const update=await clone.json();
+        if(update.message?.text?.trim().split(/\s+/)[0].toLowerCase()==='/menu'){
+          await send(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());
+          return new Response('OK');
+        }
         if(update.callback_query){
           const handled=await safeCallback(env,update.callback_query);
           if(handled!==false)return new Response('OK');
