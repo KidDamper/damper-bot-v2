@@ -23,13 +23,15 @@ export async function drawCard(env,userId,tier){
   const pool=CARDS.filter(x=>x.tier===String(tier).toUpperCase()); if(!pool.length)return {ok:false,error:'TIER_NOT_FOUND'};
   const card=pick(pool);
   if(!await charge(env,userId,card.price))return {ok:false,error:'INSUFFICIENT'};
+  let duplicate=false;
   try{
     const owned=await env.DB.prepare('SELECT quantity FROM user_cards WHERE user_id=? AND card_id=?').bind(userId,card.id).first();
+    duplicate=!!owned;
     if(owned)await env.DB.prepare('UPDATE user_cards SET quantity=quantity+1 WHERE user_id=? AND card_id=?').bind(userId,card.id).run();
     else await env.DB.prepare('INSERT INTO user_cards(user_id,card_id,quantity) VALUES(?,?,1)').bind(userId,card.id).run();
-    await transaction(env,userId,-card.price,'CARD_DRAW','card_draw');
+    await transaction(env,userId,-card.price,'CARD_DRAW',duplicate?'card_duplicate':'card_draw');
   }catch(e){await refund(env,userId,card.price);throw e;}
-  return {ok:true,card,duplicate:!!(await env.DB.prepare('SELECT quantity FROM user_cards WHERE user_id=? AND card_id=?').bind(userId,card.id).first())};
+  return {ok:true,card,duplicate};
 }
 
 export async function drawNumbered(env,userId){
