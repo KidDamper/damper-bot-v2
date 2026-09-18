@@ -35,14 +35,23 @@ async function handleSafeMessage(env,msg){if(!msg?.text||msg.text.startsWith('/'
 }
 async function safeCallback(env,q){
   const d=String(q.data||'');
-  const supported=d==='menu_main'||d==='games_main'||d==='games_social'||d==='games_reaction'||d==='safe_games_brain'||d.startsWith('safe_')||d.startsWith('social_')||['economy_main','economy_balance','economy_daily','economy_give','rpg_main','profile_main','help_main','help_commands','help_games','help_economy','help_rpg'].includes(d);
+  const supported=d==='check_membership'||d==='menu_main'||d==='menu_games'||d==='games_main'||d==='games_social'||d==='games_reaction'||d==='safe_games_brain'||d.startsWith('safe_')||d.startsWith('social_')||d.startsWith('vault_')||d==='leaderboard_main'||d.startsWith('leaderboard:')||['economy_main','economy_balance','economy_daily','economy_give','rpg_main','profile_main','help_main','help_commands','help_games','help_economy','help_rpg'].includes(d);
   if(!supported)return false;
   await ack(env,q.id);const chat=q.message?.chat?.id,mid=q.message?.message_id;
-  if(!(await allowed(env,q.from.id)))return edit(env,chat,mid,'🔒 *ACCESS LOCKED*\n\nJoin both channels, then check membership.',join());
+  if(!(await allowed(env,q.from.id)))return edit(env,chat,mid,'🔒 *ACCESS LOCKED*\\n\\nJoin both channels, then check membership.',join());
+
+  // Keep navigation independent from account/XP/collection queries.
+  if(d==='check_membership'){
+    const ok=await allowed(env,q.from.id);
+    return ok?edit(env,chat,mid,'✅ *MEMBERSHIP VERIFIED*\\n\\nChoose your destination.',mainMenu()):edit(env,chat,mid,'❌ Join both channels first.',join());
+  }
+  if(d==='menu_main')return edit(env,chat,mid,'🔥 *THE DAMPER_BOT V2*',mainMenu());
+  if(d==='games_main'||d==='menu_games')return edit(env,chat,mid,'🎮 *GAMES*\\n\\nChoose a safe game category.',gamesMenu());
+  if(d==='safe_games_brain')return edit(env,chat,mid,'🧠 *BRAIN GAMES*\\n\\nChoose a challenge.',brainMenu());
+  if(d==='rpg_main')return edit(env,chat,mid,'⚔️ *RPG*\\n\\nChoose your path.',{inline_keyboard:[[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
+  if(d==='vault_main')return edit(env,chat,mid,'🗃️ *VAULT*\\n\\nYour collection.',{inline_keyboard:[[{text:'🃏 CARDS',callback_data:'vault_cards'},{text:'🐾 PETS',callback_data:'vault_pets'}],[{text:'🔢 NUMBERED ITEMS',callback_data:'vault_numbered'}],[{text:'⚔️ RPG GEAR',callback_data:'vault_rpg'}],[{text:'🏆 ACHIEVEMENTS',callback_data:'vault_achievements'},{text:'🏅 TITLES',callback_data:'vault_titles'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
+  if(d==='leaderboard_main')return edit(env,chat,mid,'📊 *LEADERBOARD*\\n\\nChoose a ranking.',{inline_keyboard:[[{text:'💰 RICHEST',callback_data:'leaderboard:coins'},{text:'⭐ XP',callback_data:'leaderboard:xp'}],[{text:'🏆 WINS',callback_data:'leaderboard:wins'},{text:'🎮 GAMES',callback_data:'leaderboard:games'}],[{text:'⚔️ RPG',callback_data:'leaderboard:rpg'},{text:'🃏 COLLECTOR',callback_data:'leaderboard:collector'}],[{text:'🏅 ACHIEVEMENTS',callback_data:'leaderboard:achievements'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
   const u=await user(env,q.from.id);if(!u)return send(env,chat,'⚠️ Account not ready. Use /start first.');
-  if(d==='menu_main')return send(env,chat,'🔥 *THE DAMPER_BOT V2*',mainMenu());
-  if(d==='games_main')return edit(env,chat,mid,'🎮 *GAMES*\n\nChoose a safe game category.',gamesMenu());
-  if(d==='safe_games_brain')return edit(env,chat,mid,'🧠 *BRAIN GAMES*\n\nChoose a challenge.',brainMenu());
   if(d==='games_social'||d==='social_main'){const view=socialView();return edit(env,chat,mid,view.text,view.reply_markup);}
   if(d==='games_reaction')return edit(env,chat,mid,reactionMenu().text,reactionMenu().reply_markup);
   if(d.startsWith('safe_brain_'))return startBrain(env,chat,mid,u.id,d.slice(11));
@@ -59,6 +68,27 @@ async function safeCallback(env,q){
   if(d==='economy_daily')return edit(env,chat,mid,'🎁 *DAILY*\n\nUse /daily to claim your daily Coins.',backMain());
   if(d==='economy_give')return edit(env,chat,mid,'💸 *GIVE*\n\nUse /give @username amount to transfer virtual Coins.',backMain());
   if(d==='rpg_main')return edit(env,chat,mid,'⚔️ *RPG*\n\nChoose your path.',{inline_keyboard:[[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
+  if(d==='vault_cards'||d==='vault_pets'||d==='vault_numbered'||d==='vault_rpg'){
+    const {getVault}=await import('./vault/vault.js'); const v=await getVault(env,u.id);
+    if(d==='vault_cards')return edit(env,chat,mid,v.cards.length?\`🃏 *CARDS*\\n\\n\${v.cards.map(x=>\`• \${x.name} — ×\${x.quantity}\`).join('\\n')}\`:'🃏 *CARDS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    if(d==='vault_pets')return edit(env,chat,mid,v.pets.length?\`🐾 *PETS*\\n\\n\${v.pets.map(x=>\`• \${x.name} — \${x.tier} — Luck +\${x.luck||0}\`).join('\\n')}\`:'🐾 *PETS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    if(d==='vault_numbered')return edit(env,chat,mid,v.numbered.length?\`🔢 *NUMBERED ITEMS*\\n\\n\${v.numbered.map(x=>\`• #${String(x.id).padStart(2,'0')} \${x.name}\`).join('\\n')}\`:'🔢 *NUMBERED ITEMS*\\n\\nNone discovered yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    return edit(env,chat,mid,v.rpg.length?\`⚔️ *RPG INVENTORY*\\n\\n\${v.rpg.map(x=>\`• \${x.item_id} ×\${x.quantity}\`).join('\\n')}\`:'⚔️ *RPG INVENTORY*\\n\\nEmpty.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+  }
+  if(d==='vault_achievements'){
+    const {achievementSummary,formatAchievements}=await import('./achievements/format.js');
+    return (async()=>{const s=await achievementSummary(env,u.id);return edit(env,chat,mid,formatAchievements(s),{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});})();
+  }
+  if(d==='vault_titles'){
+    const rows=await env.DB.prepare('SELECT t.id,t.name,t.description,CASE WHEN ut.user_id IS NULL THEN 0 ELSE 1 END unlocked FROM titles t LEFT JOIN user_titles ut ON ut.title_id=t.id AND ut.user_id=? ORDER BY unlocked DESC,t.name').bind(u.id).all();
+    return edit(env,chat,mid,(rows.results||[]).length?\`🏅 *TITLES*\\n\\n\${rows.results.map(x=>Number(x.unlocked)===1?\`✅ \${x.name} — \${x.description}\`:\`🔒 \${x.name}\`).join('\\n')}\`:'🏅 *TITLES*\\n\\nNo titles configured yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+  }
+  if(d.startsWith('leaderboard:')){
+    const metric=d.split(':')[1], titles={coins:'RICHEST',xp:'XP',wins:'WINS',games:'GAMES',rpg:'RPG',collector:'COLLECTOR',achievements:'ACHIEVEMENTS'};
+    const {leaderboard,formatLeaderboard}=await import('./leaderboards/service.js');
+    const rows=await leaderboard(env,metric,10);
+    return edit(env,chat,mid,formatLeaderboard(rows,titles[metric]||'LEADERBOARD'),{inline_keyboard:[[{text:'⬅️ LEADERBOARD',callback_data:'leaderboard_main'}]]});
+  }
   if(d==='profile_main')return edit(env,chat,mid,`👤 *PROFILE*\n\nUsername: ${u.username?`@${u.username}`:'—'}\n🆔 Damper ID: \`${u.damper_id}\`\n💰 Coins: ${u.balance||0}\n⭐ Level: ${u.level||1}\n✨ XP: ${u.damper_xp||0}${u.role==='OWNER'?'\n\n👑 CREATOR':''}`,backMain());
   if(d==='help_main')return edit(env,chat,mid,'❓ *HELP*\n\nChoose a section.',menuPage('help','HELP','Use the buttons below to explore commands and features.').reply_markup);
   if(d==='help_commands')return edit(env,chat,mid,'📖 *COMMANDS*\n\n/start — open the bot\n/menu — main menu\n/balance — view Coins\n/profile — view profile\n/daily — daily reward\n/give @username amount — transfer virtual Coins\n/ping — check bot status',backMain());
