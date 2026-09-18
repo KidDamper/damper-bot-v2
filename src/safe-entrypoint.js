@@ -70,10 +70,10 @@ async function safeCallback(env,q){
   if(d==='rpg_main')return edit(env,chat,mid,'⚔️ *RPG*\n\nChoose your path.',{inline_keyboard:[[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
   if(d==='vault_cards'||d==='vault_pets'||d==='vault_numbered'||d==='vault_rpg'){
     const {getVault}=await import('./vault/vault.js'); const v=await getVault(env,u.id);
-    if(d==='vault_cards')return edit(env,chat,mid,v.cards.length?`🃏 *CARDS*\\n\\n\${v.cards.map(x=>\`• \${x.name} — ×\${x.quantity}\`).join('\\n')}\`:'🃏 *CARDS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
-    if(d==='vault_pets')return edit(env,chat,mid,v.pets.length?`🐾 *PETS*\\n\\n\${v.pets.map(x=>\`• \${x.name} — \${x.tier} — Luck +\${x.luck||0}\`).join('\\n')}\`:'🐾 *PETS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
-    if(d==='vault_numbered')return edit(env,chat,mid,v.numbered.length?`🔢 *NUMBERED ITEMS*\\n\\n\${v.numbered.map(x=>\`• #${String(x.id).padStart(2,'0')} \${x.name}\`).join('\\n')}\`:'🔢 *NUMBERED ITEMS*\\n\\nNone discovered yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
-    return edit(env,chat,mid,v.rpg.length?`⚔️ *RPG INVENTORY*\\n\\n\${v.rpg.map(x=>\`• \${x.item_id} ×\${x.quantity}\`).join('\\n')}\`:'⚔️ *RPG INVENTORY*\\n\\nEmpty.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    if(d==='vault_cards')return edit(env,chat,mid,v.cards.length?('🃏 *CARDS*\\n\\n'+v.cards.map(x=>'• '+x.name+' — ×'+x.quantity).join('\\n')):'🃏 *CARDS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    if(d==='vault_pets')return edit(env,chat,mid,v.pets.length?('🐾 *PETS*\\n\\n'+v.pets.map(x=>'• '+x.name+' — '+x.tier+' — Luck +'+(x.luck||0)).join('\\n')):'🐾 *PETS*\\n\\nNone yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    if(d==='vault_numbered')return edit(env,chat,mid,v.numbered.length?('🔢 *NUMBERED ITEMS*\\n\\n'+v.numbered.map(x=>'• #'+String(x.id).padStart(2,'0')+' '+x.name).join('\\n')):'🔢 *NUMBERED ITEMS*\\n\\nNone discovered yet.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
+    return edit(env,chat,mid,v.rpg.length?('⚔️ *RPG INVENTORY*\\n\\n'+v.rpg.map(x=>'• '+x.item_id+' ×'+x.quantity).join('\\n')):'⚔️ *RPG INVENTORY*\\n\\nEmpty.',{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
   }
   if(d==='vault_achievements'){
     const {achievementSummary,formatAchievements}=await import('./achievements/format.js');
