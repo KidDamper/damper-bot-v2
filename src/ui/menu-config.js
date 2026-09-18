@@ -10,11 +10,9 @@ export const MENU_CONFIG={
     ['❓ HELP','help_main']
   ],
   games:[
-    ['🎲 CLASSIC','games_classic'],
-    ['🧠 BRAIN','games_brain'],
+    ['🧠 BRAIN','safe_games_brain'],
     ['⚡ REACTION','games_reaction'],
-    ['🎭 SOCIAL','games_social'],
-    ['⚽ PENALTY','games_penalty']
+    ['🎭 SOCIAL','games_social']
   ],
   economy:[
     ['💰 BALANCE','economy_balance'],
@@ -23,10 +21,10 @@ export const MENU_CONFIG={
     ['🏆 LEADERBOARD','leaderboard_main']
   ],
   rpg:[
-    ['⚔️ BATTLE','rpg_battle'],
+    ['⚔️ BATTLE','rpg_start'],
     ['⬆️ LEVEL UP','rpg_levelup'],
-    ['🎒 INVENTORY','rpg_inventory'],
-    ['📊 RPG PROFILE','rpg_profile']
+    ['🎒 INVENTORY','rpg_inv'],
+    ['📊 RPG PROFILE','rpg_prof']
   ],
   shop:[
     ['🃏 CARDS','shop_cards'],
@@ -41,15 +39,16 @@ export const MENU_CONFIG={
     ['⚔️ RPG GEAR','vault_rpg']
   ],
   leaderboard:[
-    ['💰 RICHEST','lb_coins'],
-    ['⭐ XP','lb_xp'],
-    ['🏆 WINS','lb_wins'],
-    ['🎮 GAMES','lb_games'],
-    ['⚔️ RPG','lb_rpg'],
-    ['🃏 COLLECTOR','lb_collector']
+    ['💰 RICHEST','leaderboard:coins'],
+    ['⭐ XP','leaderboard:xp'],
+    ['🏆 WINS','leaderboard:wins'],
+    ['🎮 GAMES','leaderboard:games'],
+    ['⚔️ RPG','leaderboard:rpg'],
+    ['🃏 COLLECTOR','leaderboard:collector'],
+    ['🏅 ACHIEVEMENTS','leaderboard:achievements']
   ],
   profile:[
-    ['👤 PROFILE','profile_view'],
+    ['👤 PROFILE','profile_main'],
     ['🗃️ VAULT','vault_main'],
     ['🏆 LEADERBOARD','leaderboard_main']
   ],
