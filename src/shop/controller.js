@@ -3,7 +3,7 @@ import { buyPet, drawCard, drawNumbered, vaultCards, vaultPets, vaultNumbered } 
 import { shopHome, cardTiers, petsMenu, numberedMenu, rpgShopMenu } from './ui.js';
 
 const kb=inline_keyboard=>({inline_keyboard});
-const back=()=>kb([[{text:'⬅️ SHOP',callback_data:'menu_shop'}]]);
+const back=()=>kb([[{text:'⬅️ SHOP',callback_data:'shop_main'}]]);
 const money=n=>Number(n||0).toLocaleString();
 
 export function cardMenu(tier){const list=CARDS.filter(x=>x.tier===String(tier).toUpperCase());return kb([...list.map(x=>[{text:`🃏 ${x.name} — ${money(x.price)}`,callback_data:`shop_card_draw:${x.id}`}]),[{text:'⬅️ TIERS',callback_data:'shop_cards'}]]);}
