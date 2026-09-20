@@ -4,7 +4,7 @@ import { nextQuestion, checkBrainAnswer, brainReward } from './games/brain-servi
 import { reactionReward } from './games/reaction.js';
 import { ownerConsole, isOwner } from './owner/console.js';
 
-const APP_VERSION='wallet-primary-20260920';
+const APP_VERSION='wallet-direct-20260920';
 const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme',UPDATES='@Updamper_bot',MIN=50,now=()=>Math.floor(Date.now()/1000);
 const kb=inline_keyboard=>({inline_keyboard});
