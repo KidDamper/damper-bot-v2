@@ -35,7 +35,7 @@ async function handleSafeMessage(env,msg){if(!msg?.text||msg.text.startsWith('/'
 }
 async function safeCallback(env,q){
   const d=String(q.data||'');
-  const supported=d==='check_membership'||d==='menu_main'||d==='menu_games'||d==='games_main'||d==='games_social'||d==='games_reaction'||d==='safe_games_brain'||d.startsWith('safe_')||d.startsWith('social_')||d.startsWith('vault_')||d==='leaderboard_main'||d.startsWith('leaderboard:')||['economy_main','economy_balance','economy_daily','economy_give','rpg_main','profile_main','help_main','help_commands','help_games','help_economy','help_rpg'].includes(d);
+  const supported=d==='check_membership'||d==='menu_main'||d==='menu_games'||d==='games_main'||d==='games_social'||d==='games_reaction'||d==='safe_games_brain'||d.startsWith('safe_')||d.startsWith('social_')||d.startsWith('vault_')||d==='leaderboard_main'||d.startsWith('leaderboard:')||d.startsWith('game_')||d.startsWith('stake:')||d.startsWith('wager_choice:')||d.startsWith('mine:')||d.startsWith('mine_cashout:')||d.startsWith('session_cancel:')||['economy_main','economy_balance','economy_daily','economy_give','rpg_main','profile_main','help_main','help_commands','help_games','help_economy','help_rpg'].includes(d);
   if(!supported)return false;
   await ack(env,q.id);const chat=q.message?.chat?.id,mid=q.message?.message_id;
   if(!(await allowed(env,q.from.id)))return edit(env,chat,mid,'🔒 *ACCESS LOCKED*\\n\\nJoin both channels, then check membership.',join());
