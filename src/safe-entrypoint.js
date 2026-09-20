@@ -16,7 +16,7 @@ async function member(env,ch,id){const r=await tg(env,'getChatMember',{chat_id:c
 async function allowed(env,id){if(env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===String(id))return true;return member(env,MEME,id)&&member(env,UPDATES,id);}
 async function user(env,id){return env.DB.prepare('SELECT u.*,w.balance,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(id)).first();}
 const mainMenu=()=>({inline_keyboard:(MENU_CONFIG.main||[]).reduce((rows,[text,callback_data],i)=>{if(i%2===0)rows.push([]);rows.at(-1).push({text,callback_data});return rows;},[])});
-const gamesMenu=()=>({inline_keyboard:[[{text:'🧠 BRAIN',callback_data:'safe_games_brain'}],[{text:'⚡ REACTION',callback_data:'games_reaction'},{text:'🎭 SOCIAL',callback_data:'games_social'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
+const gamesMenu=()=>({inline_keyboard:[[{text:'🪙 COIN FLIP',callback_data:'game_coin'},{text:'🎲 DICE DUEL',callback_data:'game_dice'}],[{text:'💣 MINES',callback_data:'game_mines'},{text:'🎰 SLOTS',callback_data:'game_slots'}],[{text:'⚽ PENALTY',callback_data:'game_penalty'},{text:'🏁 VIRTUAL RACE',callback_data:'game_race'}],[{text:'🧠 BRAIN',callback_data:'safe_games_brain'},{text:'⚡ REACTION',callback_data:'games_reaction'}],[{text:'🎭 SOCIAL',callback_data:'games_social'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
 const brainMenu=()=>({inline_keyboard:[[{text:'🧠 TRIVIA',callback_data:'safe_brain_trivia'}],[{text:'➗ MATH',callback_data:'safe_brain_math'}],[{text:'🔤 ANAGRAM',callback_data:'safe_brain_anagram'}],[{text:'😀 EMOJI',callback_data:'safe_brain_emoji'}],[{text:'🏳️ FLAGS',callback_data:'safe_brain_flags'}],[{text:'⬅️ BACK',callback_data:'games_main'}]]});
 const backGames=()=>({inline_keyboard:[[{text:'⬅️ GAMES',callback_data:'games_main'}]]});
 const backMain=()=>({inline_keyboard:[[{text:'⬅️ MENU',callback_data:'menu_main'}]]});
@@ -42,7 +42,7 @@ async function safeCallback(env,q){
 
   if(d==='check_membership'){const ok=await allowed(env,q.from.id);return ok?edit(env,chat,mid,'✅ *MEMBERSHIP VERIFIED*\\n\\nChoose your destination.',mainMenu()):edit(env,chat,mid,'❌ Join both channels first.',join());}
   if(d==='menu_main')return edit(env,chat,mid,'🔥 *THE DAMPER_BOT V2*',mainMenu());
-  if(d==='games_main'||d==='menu_games')return edit(env,chat,mid,'🎮 *GAMES*\\n\\nChoose a safe game category.',gamesMenu());
+  if(d==='games_main'||d==='menu_games')return edit(env,chat,mid,'🎮 *GAMES*\\n\\nVirtual Coin games and non-wager games.',gamesMenu());
   if(d==='safe_games_brain')return edit(env,chat,mid,'🧠 *BRAIN GAMES*\\n\\nChoose a challenge.',brainMenu());
   if(d==='rpg_main')return edit(env,chat,mid,'⚔️ *RPG*\\n\\nChoose your path.',{inline_keyboard:[[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
   if(d==='vault_main')return edit(env,chat,mid,'🗃️ *VAULT*\\n\\nYour collection.',{inline_keyboard:[[{text:'🃏 CARDS',callback_data:'vault_cards'},{text:'🐾 PETS',callback_data:'vault_pets'}],[{text:'🔢 NUMBERED ITEMS',callback_data:'vault_numbered'}],[{text:'⚔️ RPG GEAR',callback_data:'vault_rpg'}],[{text:'🏆 ACHIEVEMENTS',callback_data:'vault_achievements'},{text:'🏅 TITLES',callback_data:'vault_titles'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
