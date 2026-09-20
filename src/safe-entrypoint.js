@@ -155,9 +155,7 @@ Username: ${u.username?`@${u.username}`:'—'}
 🆔 Damper ID: \`${u.damper_id}\`
 💰 Coins: ${u.balance||0}
 ⭐ Level: ${u.level||1}
-✨ XP: ${u.damper_xp||0}${u.role==='OWNER'?'
-
-👑 CREATOR':''}`,backMain());
+✨ XP: ${u.damper_xp||0}${u.role==='OWNER'?"\n\n👑 CREATOR":""}`,backMain());
   if(d==='help_main')return edit(env,chat,mid,'❓ *HELP*\n━━━━━━━━━━━━━━\n\nFind commands, games, economy and RPG information below.',menuPage('help','HELP','Choose a help section below.').reply_markup);
   if(d==='help_commands')return edit(env,chat,mid,'📖 *COMMANDS*\n\n/start — open the bot\n/menu — main menu\n/balance — view Coins\n/profile — view profile\n/daily — daily reward\n/give @username amount — transfer virtual Coins\n/ping — check bot status',backMain());
   if(d==='help_games')return edit(env,chat,mid,'🎮 *GAMES*\n\nBrain, Reaction and Social games are available without wagers.',gamesMenu());
