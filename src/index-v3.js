@@ -48,8 +48,10 @@ const type={coin:'COIN_FLIP',dice:'DICE_DUEL',slots:'SLOTS',penalty:'PENALTY',ra
 if(type){
 const sid=await startSession(env,chat,u,type,Number(s),type==='PENALTY'||type==='COIN_FLIP'?{choice:null}:{});
 if(!sid)return send(env,chat,'⚠️ Could not start wager. Check your balance and active games.',back());
-const b=await env.DB.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(u.id).first();
-const balanceText='💸 Stake: *'+Number(s)+'* Coins\\n💰 Balance after stake: *'+Number(b?.balance??0)+'*';
+const wagerSession=env.DB.withSession('first-primary');
+const wagerCheck=await wagerSession.prepare('SELECT u.id,u.telegram_id,w.balance,x.damper_xp,x.level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();
+const wagerRow=wagerCheck.results?.[0];
+const balanceText='💸 Stake: *'+Number(s)+'* Coins\\n💰 Balance after stake: *'+Number(wagerRow?.balance??0)+'*\\n\\n🔧 *SYNC*\\nID: '+String(wagerRow?.id??'NULL')+' • DB: '+String(wagerCheck.meta?.served_by_primary??'unknown');
 if(type==='PENALTY')return edit(env,chat,mid,'⚽ *PENALTY*\\n\\n'+balanceText+'\\n\\nChoose your shot.',kb([[{text:'⬅️ LEFT',callback_data:`wager_choice:${sid}:left`},{text:'🎯 CENTER',callback_data:`wager_choice:${sid}:center`}],[{text:'➡️ RIGHT',callback_data:`wager_choice:${sid}:right`}],[{text:'↖️ TOP LEFT',callback_data:`wager_choice:${sid}:top-left`},{text:'↗️ TOP RIGHT',callback_data:`wager_choice:${sid}:top-right`}]]));
 if(type==='COIN_FLIP')return edit(env,chat,mid,'🪙 *COIN FLIP*\\n\\n'+balanceText+'\\n\\nPick heads or tails.',kb([[{text:'🪙 HEADS',callback_data:`wager_choice:${sid}:heads`},{text:'🪙 TAILS',callback_data:`wager_choice:${sid}:tails`}]]));
 const r=type==='DICE_DUEL'?dice():wagerResult(type,Number(s),null);
@@ -58,8 +60,10 @@ return settle(env,chat,u,sid,type,r.outcome||r.o,r.mult??r.m,r.xp,r.text+'\\n\\n
 if(g==='mines'){
 const sid=await startSession(env,chat,u,'MINES',Number(s),newMinesGame());
 if(!sid)return send(env,chat,'⚠️ Could not start Mines. Check your balance and active games.',back());
-const b=await env.DB.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(u.id).first();
-const balanceText='💸 Stake: *'+Number(s)+'* Coins\\n💰 Balance after stake: *'+Number(b?.balance??0)+'*';
+const wagerSession=env.DB.withSession('first-primary');
+const wagerCheck=await wagerSession.prepare('SELECT u.id,u.telegram_id,w.balance,x.damper_xp,x.level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();
+const wagerRow=wagerCheck.results?.[0];
+const balanceText='💸 Stake: *'+Number(s)+'* Coins\\n💰 Balance after stake: *'+Number(wagerRow?.balance??0)+'*\\n\\n🔧 *SYNC*\\nID: '+String(wagerRow?.id??'NULL')+' • DB: '+String(wagerCheck.meta?.served_by_primary??'unknown');
 const board=kb([...Array(12)].map((_,i)=>({text:'⬜',callback_data:`mine:${sid}:${i}`})).reduce((rows,b,i)=>{if(i%4===0)rows.push([]);rows[rows.length-1].push(b);return rows;},[]).concat([[{text:'💰 CASH OUT',callback_data:`mine_cashout:${sid}`}]]));
 return edit(env,chat,mid,'💣 *MINES*\\n\\n'+balanceText+'\\n\\nChoose a tile.',board);
 }
