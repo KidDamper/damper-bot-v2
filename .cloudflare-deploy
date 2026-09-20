@@ -1,5 +1,5 @@
 Deploy trigger for Cloudflare Workers Builds.
-Latest main commit: 5e0fd2c2ff00b05bdce0be565ffab48416f35feb
+Latest main commit: efd744734358476a4b044d87df186f4e8da265ee
 Wager path: src/safe-entrypoint.js -> src/entrypoint.js -> src/index-v3.js
 Wallet key: wallets.user_id = users.id
 
