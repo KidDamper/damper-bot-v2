@@ -4,12 +4,14 @@ import { startReactionTest, resolveReactionTest } from './games/reaction-service
 import { nextQuestion, checkBrainAnswer, brainReward } from './games/brain-service.js';
 import { MENU_CONFIG } from './ui/menu-config.js';
 
+const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme';
 const UPDATES='@Updamper_bot';
 const now=()=>Math.floor(Date.now()/1000);
 async function tg(env,method,body){const r=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});return r.json();}
-const edit=(env,chat_id,message_id,text,reply_markup)=>tg(env,'editMessageText',{chat_id,message_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});
+const edit=async(env,chat_id,message_id,text,reply_markup)=>{const r=await tg(env,'editMessageText',{chat_id,message_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});if(r?.ok)return r;await tg(env,'deleteMessage',{chat_id,message_id});return send(env,chat_id,text,reply_markup);};
 const send=(env,chat_id,text,reply_markup)=>tg(env,'sendMessage',{chat_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});
+const photo=(env,chat_id,caption,reply_markup)=>tg(env,'sendPhoto',{chat_id,photo:BANNER_FILE_ID,caption,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});
 const ack=(env,id,text='')=>tg(env,'answerCallbackQuery',{callback_query_id:id,text});
 const join=()=>({inline_keyboard:[[{text:'🧠 JOIN MEME CHANNEL',url:'https://t.me/nah_idmeme'}],[{text:'🔥 JOIN UPDATES CHANNEL',url:'https://t.me/Updamper_bot'}],[{text:'✅ CHECK MEMBERSHIP',callback_data:'check_membership'}]]});
 async function member(env,ch,id){const r=await tg(env,'getChatMember',{chat_id:ch,user_id:id});return !!(r.ok&&['creator','administrator','member'].includes(r.result?.status));}
@@ -41,7 +43,7 @@ async function safeCallback(env,q){
   if(!(await allowed(env,q.from.id)))return edit(env,chat,mid,'🔒 *ACCESS LOCKED*\\n\\nJoin both channels, then check membership.',join());
 
   if(d==='check_membership'){const ok=await allowed(env,q.from.id);return ok?edit(env,chat,mid,'✅ *MEMBERSHIP VERIFIED*\\n\\nChoose your destination.',mainMenu()):edit(env,chat,mid,'❌ Join both channels first.',join());}
-  if(d==='menu_main')return edit(env,chat,mid,'🔥 *THE DAMPER_BOT V2*',mainMenu());
+  if(d==='menu_main'){await tg(env,'deleteMessage',{chat_id:chat,message_id:mid});return photo(env,chat,'🔥 *THE DAMPER_BOT V2*',mainMenu());}
   if(d==='games_main'||d==='menu_games')return edit(env,chat,mid,'🎮 *GAMES*\\n━━━━━━━━━━━━━━\\n\\n🪙 *WAGER GAMES*\\nVirtual Coin wager games with a minimum stake of 50 Coins.\\n\\n🧠 *NON-WAGER GAMES*\\nBrain, Reaction and Social games use no stake.',gamesMenu());
   if(d==='safe_games_brain')return edit(env,chat,mid,'🧠 *BRAIN GAMES*\\n\\nChoose a challenge.',brainMenu());
   if(d==='rpg_main')return edit(env,chat,mid,'⚔️ *RPG*\\n━━━━━━━━━━━━━━\\n\\n⚔️ *BATTLE*\\nFight and earn RPG rewards.\\n\\n⬆️ *PROGRESSION*\\nLevel up and improve your stats.\\n\\n🎒 *INVENTORY*\\nManage your RPG equipment.',{inline_keyboard:[[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
@@ -96,4 +98,4 @@ async function safeCallback(env,q){
   if(d==='help_rpg')return edit(env,chat,mid,'⚔️ *RPG*\\n\\nBattle, level up, inspect inventory and view your RPG profile.',{inline_keyboard:[[{text:'⚔️ OPEN RPG',callback_data:'rpg_main'}],[{text:'⬅️ HELP',callback_data:'help_main'}]]});
   return false;
 }
-export default {async fetch(request,env,ctx){if(request.method==='POST'&&new URL(request.url).pathname==='/telegram/webhook'){const clone=request.clone();try{const update=await clone.json();if(update.message?.text?.trim().split(/\\s+/)[0].toLowerCase()==='/menu'){await send(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());return new Response('OK');}if(update.message){const handled=await handleSafeMessage(env,update.message);if(handled!==false)return new Response('OK');}if(update.callback_query){const handled=await safeCallback(env,update.callback_query);if(handled!==false)return new Response('OK');}}catch(e){console.error('safe wrapper error',e);}}return base.fetch(request,env,ctx);}};
+export default {async fetch(request,env,ctx){if(request.method==='POST'&&new URL(request.url).pathname==='/telegram/webhook'){const clone=request.clone();try{const update=await clone.json();if(update.message?.text?.trim().split(/\\s+/)[0].toLowerCase()==='/menu'){await photo(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());return new Response('OK');}if(update.message){const handled=await handleSafeMessage(env,update.message);if(handled!==false)return new Response('OK');}if(update.callback_query){const handled=await safeCallback(env,update.callback_query);if(handled!==false)return new Response('OK');}}catch(e){console.error('safe wrapper error',e);}}return base.fetch(request,env,ctx);}};
