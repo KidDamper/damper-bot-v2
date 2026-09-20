@@ -1,8 +1,2 @@
-Deploy trigger for Cloudflare Workers Builds.
-Latest main commit: efd744734358476a4b044d87df186f4e8da265ee
-Wager path: src/safe-entrypoint.js -> src/entrypoint.js -> src/index-v3.js
-Wallet key: wallets.user_id = users.id
-
-Fixes included:
-- Wallet/economy sync diagnostics
-- Telegram newline formatting
+2026-09-20T20:46:14.558Z
+74a89c9e2cc42482b625ee01bad17767e80fd2c5
