@@ -108,21 +108,7 @@ ${r.prompt}
 Nice reaction.`,backGames());}
   if(d.startsWith('safe_reaction_cancel:')){const id=d.split(':')[1];const s=await env.DB.prepare('SELECT id FROM game_sessions WHERE id=? AND player_id=? AND result IS NULL').bind(id,u.id).first();if(!s)return send(env,chat,'⌛ Reaction test ended.',backGames());await finishSafeSession(env,id,'CANCELLED');return edit(env,chat,mid,'⚡ Reaction test cancelled.',reactionMenu().reply_markup);}
   if(d==='economy_main')return edit(env,chat,mid,'💰 *ECONOMY*\n━━━━━━━━━━━━━━\n\n🪙 *COINS*\nManage your virtual Damper Coins.\n\n⭐ *PROGRESSION*\nTrack your Level and XP.\n\n🎁 *REWARDS*\nClaim Daily Coins and use Give to transfer Coins.',menuPage('economy','ECONOMY','Choose an economy feature below.').reply_markup);
-  if(d==='economy_balance'){const check=await env.DB.prepare('SELECT u.id,u.telegram_id,u.username,w.balance,x.damper_xp,x.level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();const row=check.results?.[0];const balance=Number(row?.balance??0);const debug=`
-
-🔧 *SYNC*
-ID: ${row?.id??'NULL'} • DB: ${check.meta?.served_by_primary??'unknown'} • V: wallet-primary-20260920`;return edit(env,chat,mid,`💰 *BALANCE*
-━━━━━━━━━━━━━━
-
-🪙 *Coins*
-${balance}
-
-⭐ *Level*
-${row?.level||1}
-
-✨ *XP*
-${row?.damper_xp||0}${debug}`,backMain());}
-  if(d==='economy_daily')return edit(env,chat,mid,'🎁 *DAILY*\n\nUse /daily to claim your daily Coins.',backMain());
+  if(d==='economy_balance'){const check=await env.DB.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(u.id).run();const xpRow=await env.DB.prepare('SELECT damper_xp,level FROM xp WHERE user_id=?').bind(u.id).first();const balance=Number(check.results?.[0]?.balance??0);const debug='\n\n🔧 *SYNC*\nID: '+u.id+' • DB: '+(check.meta?.served_by_primary??'unknown')+' • REGION: '+(check.meta?.served_by_region??'unknown')+' • V: wallet-primary-20260920';return edit(env,chat,mid,'💰 *BALANCE*\n━━━━━━━━━━━━━━\n\n🪙 *Coins*\n'+balance+'\n\n⭐ *Level*\n'+(xpRow?.level||1)+'\n\n✨ *XP*\n'+(xpRow?.damper_xp||0)+debug,backMain());}\n  if(d==='economy_daily')return edit(env,chat,mid,'🎁 *DAILY*\n\nUse /daily to claim your daily Coins.',backMain());
   if(d==='economy_give')return edit(env,chat,mid,'💸 *GIVE*\n\nUse /give @username amount to transfer virtual Coins.',backMain());
   if(d==='vault_cards'||d==='vault_pets'||d==='vault_numbered'||d==='vault_rpg'){
     const {getVault}=await import('./vault/vault.js'); const v=await getVault(env,u.id);
