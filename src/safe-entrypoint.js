@@ -16,7 +16,7 @@ const ack=(env,id,text='')=>tg(env,'answerCallbackQuery',{callback_query_id:id,t
 const join=()=>({inline_keyboard:[[{text:'🧠 JOIN MEME CHANNEL',url:'https://t.me/nah_idmeme'}],[{text:'🔥 JOIN UPDATES CHANNEL',url:'https://t.me/Updamper_bot'}],[{text:'✅ CHECK MEMBERSHIP',callback_data:'check_membership'}]]});
 async function member(env,ch,id){const r=await tg(env,'getChatMember',{chat_id:ch,user_id:id});return !!(r.ok&&['creator','administrator','member'].includes(r.result?.status));}
 async function allowed(env,id){if(env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===String(id))return true;return member(env,MEME,id)&&member(env,UPDATES,id);}
-async function user(env,id){const db=env.DB.withSession('first-primary');return db.prepare('SELECT u.*,w.balance,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(id)).first();}
+async function user(env,id){return env.DB.prepare('SELECT u.*,w.balance,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(id)).first();}
 const mainMenu=()=>({inline_keyboard:(MENU_CONFIG.main||[]).reduce((rows,[text,callback_data],i)=>{if(i%2===0)rows.push([]);rows.at(-1).push({text,callback_data});return rows;},[])});
 const gamesMenu=()=>({inline_keyboard:[[{text:'🪙 COIN FLIP',callback_data:'game_coin'},{text:'🎲 DICE DUEL',callback_data:'game_dice'}],[{text:'💣 MINES',callback_data:'game_mines'},{text:'🎰 SLOTS',callback_data:'game_slots'}],[{text:'⚽ PENALTY',callback_data:'game_penalty'},{text:'🏁 VIRTUAL RACE',callback_data:'game_race'}],[{text:'🧠 BRAIN',callback_data:'safe_games_brain'},{text:'⚡ REACTION',callback_data:'games_reaction'}],[{text:'🎭 SOCIAL',callback_data:'games_social'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
 const brainMenu=()=>({inline_keyboard:[[{text:'🧠 TRIVIA',callback_data:'safe_brain_trivia'}],[{text:'➗ MATH',callback_data:'safe_brain_math'}],[{text:'🔤 ANAGRAM',callback_data:'safe_brain_anagram'}],[{text:'😀 EMOJI',callback_data:'safe_brain_emoji'}],[{text:'🏳️ FLAGS',callback_data:'safe_brain_flags'}],[{text:'⬅️ BACK',callback_data:'games_main'}]]});
@@ -108,10 +108,10 @@ ${r.prompt}
 Nice reaction.`,backGames());}
   if(d.startsWith('safe_reaction_cancel:')){const id=d.split(':')[1];const s=await env.DB.prepare('SELECT id FROM game_sessions WHERE id=? AND player_id=? AND result IS NULL').bind(id,u.id).first();if(!s)return send(env,chat,'⌛ Reaction test ended.',backGames());await finishSafeSession(env,id,'CANCELLED');return edit(env,chat,mid,'⚡ Reaction test cancelled.',reactionMenu().reply_markup);}
   if(d==='economy_main')return edit(env,chat,mid,'💰 *ECONOMY*\n━━━━━━━━━━━━━━\n\n🪙 *COINS*\nManage your virtual Damper Coins.\n\n⭐ *PROGRESSION*\nTrack your Level and XP.\n\n🎁 *REWARDS*\nClaim Daily Coins and use Give to transfer Coins.',menuPage('economy','ECONOMY','Choose an economy feature below.').reply_markup);
-  if(d==='economy_balance'){const session=env.DB.withSession('first-primary');const check=await session.prepare('SELECT u.id,u.telegram_id,u.username,w.balance,x.damper_xp,x.level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();const row=check.results?.[0];const balance=Number(row?.balance??0);const debug=`
+  if(d==='economy_balance'){const check=await env.DB.prepare('SELECT u.id,u.telegram_id,u.username,w.balance,x.damper_xp,x.level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();const row=check.results?.[0];const balance=Number(row?.balance??0);const debug=`
 
 🔧 *SYNC*
-ID: ${row?.id??'NULL'} • DB: ${check.meta?.served_by_primary??'unknown'} • V: wallet-sync-20260920`;return edit(env,chat,mid,`💰 *BALANCE*
+ID: ${row?.id??'NULL'} • DB: ${check.meta?.served_by_primary??'unknown'} • V: wallet-primary-20260920`;return edit(env,chat,mid,`💰 *BALANCE*
 ━━━━━━━━━━━━━━
 
 🪙 *Coins*
