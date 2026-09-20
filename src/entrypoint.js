@@ -12,7 +12,7 @@ import { leaderboard, formatLeaderboard } from './leaderboards/service.js';
 const MEME='@nah_idmeme',UPDATES='@Updamper_bot';
 const tg=(env,method,body)=>fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
 const send=(env,chat_id,text,reply_markup)=>tg(env,'sendMessage',{chat_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});
-const edit=(env,chat_id,message_id,text,reply_markup)=>tg(env,'editMessageText',{chat_id,message_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});
+const edit=async(env,chat_id,message_id,text,reply_markup)=>{const r=await tg(env,'editMessageText',{chat_id,message_id,text,parse_mode:'Markdown',...(reply_markup?{reply_markup}:{})});if(r?.ok)return r;await tg(env,'deleteMessage',{chat_id,message_id});return send(env,chat_id,text,reply_markup);};
 const ack=(env,id,text='')=>tg(env,'answerCallbackQuery',{callback_query_id:id,text});
 const kb=inline_keyboard=>({inline_keyboard});
 const home=()=>kb([[{text:'⚔️ BATTLE',callback_data:'rpg_start'}],[{text:'⬆️ LEVEL UP',callback_data:'rpg_levelup'},{text:'🎒 INVENTORY',callback_data:'rpg_inv'}],[{text:'📊 RPG PROFILE',callback_data:'rpg_prof'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]);
