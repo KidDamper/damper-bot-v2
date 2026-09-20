@@ -3,4 +3,4 @@ Latest main commit wired for wager-wallet fixes: 5b8638c0cd7e4af22da56f62859ce15
 Wager path: src/safe-entrypoint.js -> src/entrypoint.js -> src/index-v3.js
 Wallet key: wallets.user_id = users.id
 
-Latest wallet hardening commit: 7fd3c64c645008585761ffb77b32a4c6cc36f726
+Latest wallet/economy balance fix: 0f73f8d435a2ff7604107d087088de64c05e7b38
