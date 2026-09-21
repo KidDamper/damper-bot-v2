@@ -5,3 +5,5 @@ safe:8dbede1c977a0836d935efea3cf6620499c03f65
 previous-trigger:wager-wallet-durability-ac247872d6e9
 trigger:balance-diag-b88588e-1789971357755
 trigger:force-current-main-20260921-0715
+wallet-session-fix:d122e5d15fc7e2bfd66a15ae3b4251f9fc610415
+trigger:wallet-session-authority-20260921-0745
