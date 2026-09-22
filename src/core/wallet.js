@@ -2,7 +2,7 @@ const dbFor=(env,db)=>db||env.DB;
 
 export async function getBalance(env,userId,db=null){
   const dbx=dbFor(env,db);
-  const readDb=typeof dbx.withSession==='function'?dbx.withSession('first-primary'):dbx;
+  const readDb=dbx;
   await readDb.prepare('INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,500)').bind(userId).run();
   const row=await readDb.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(userId).first();
   if(!row)throw Error('WALLET_NOT_FOUND');
