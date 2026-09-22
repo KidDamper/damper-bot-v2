@@ -1,15 +1,13 @@
 import { CARDS, PETS, NUMBERED_DRAW_PRICE, NUMBERED_COUNT, numberedMissReward } from './catalog.js';
 import { isOwner } from '../owner/console.js';
+import { debit, credit } from '../core/wallet.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const creator=(env,userId)=>!!(env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===String(userId));
 
-async function charge(env,userId,amount){
-  const r=await env.DB.prepare('UPDATE wallets SET balance=balance-? WHERE user_id=? AND balance>=?').bind(amount,userId,amount).run();
-  return !!r.meta?.changes;
-}
-async function refund(env,userId,amount){if(amount>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(amount,userId).run();}
+async function charge(env,userId,amount){try{await debit(env,userId,amount);return true;}catch(e){if(e?.message==='INSUFFICIENT_BALANCE')return false;throw e;}}
+async function refund(env,userId,amount){if(amount>0)await credit(env,userId,amount);}
 async function transaction(env,userId,amount,type,source){await env.DB.prepare('INSERT INTO transactions(user_id,amount,type,source,reference,created_at) VALUES(?,?,?,?,?,?)').bind(userId,amount,type,source,crypto.randomUUID(),now()).run();}
 
 export async function buyPet(env,userId,petId){
