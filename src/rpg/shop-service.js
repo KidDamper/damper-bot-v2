@@ -1,4 +1,5 @@
 import { SKILLS, WEAPONS, ARMOR, ACCESSORIES } from './catalog.js';
+import { debit, credit } from '../core/wallet.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const groups={SKILL:SKILLS,WEAPON:WEAPONS,ARMOR,ACCESSORY:ACCESSORIES};
@@ -10,12 +11,11 @@ export async function buyRpgItem(env,userId,type,itemId){
   const item=findItem(type,itemId);if(!item)return {ok:false,error:'ITEM_NOT_FOUND'};
   const owned=await env.DB.prepare('SELECT quantity FROM rpg_inventory WHERE user_id=? AND item_id=?').bind(userId,itemId).first();
   if(owned)return {ok:false,error:'ALREADY_OWNED',item};
-  const charged=await env.DB.prepare('UPDATE wallets SET balance=balance-? WHERE user_id=? AND balance>=?').bind(item.price,userId,item.price).run();
-  if(!charged.meta?.changes)return {ok:false,error:'INSUFFICIENT'};
+  try{await debit(env,userId,item.price);}catch(e){if(e?.message==='INSUFFICIENT_BALANCE')return {ok:false,error:'INSUFFICIENT'};throw e;}
   try{
     await env.DB.prepare('INSERT INTO rpg_inventory(user_id,item_id,item_type,quantity) VALUES(?,?,?,1)').bind(userId,item.id,type).run();
     await env.DB.prepare('INSERT INTO transactions(user_id,amount,type,source,reference,created_at) VALUES(?,?,?,?,?,?)').bind(userId,-item.price,'RPG_SHOP',`rpg_${type}`,crypto.randomUUID(),now()).run();
-  }catch(e){await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(item.price,userId).run();throw e;}
+  }catch(e){await credit(env,userId,item.price);throw e;}
   return {ok:true,item};
 }
 
