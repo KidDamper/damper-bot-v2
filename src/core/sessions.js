@@ -19,19 +19,24 @@ export async function finishSession(env,id,result){
 export async function cancelSession(env,id,playerId){
   const s=await env.DB.prepare('SELECT player_id,stake FROM game_sessions WHERE id=? AND result IS NULL AND reward_applied=0').bind(id).first();
   if(!s||String(s.player_id)!==String(playerId))return {ok:false,error:'SESSION_NOT_ACTIVE'};
-  const claim=await env.DB.prepare("UPDATE game_sessions SET result='CANCELLED',reward_applied=1 WHERE id=? AND player_id=? AND reward_applied=0 AND result IS NULL").bind(id,playerId).run();
-  if(!claim.meta?.changes)return {ok:false,error:'SESSION_ALREADY_RESOLVED'};
   const stake=Number(s.stake)||0;
-  if(stake>0){const refund=await env.DB.batch([env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(stake,playerId)]);if(Number(refund?.[0]?.meta?.changes??0)!==1)throw Error('WALLET_REFUND_FAILED');}
+  const claim=env.DB.prepare("UPDATE game_sessions SET result='CANCELLED',reward_applied=1 WHERE id=? AND player_id=? AND reward_applied=0 AND result IS NULL").bind(id,playerId);
+  const refund=env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(stake,playerId);
+  const results=stake>0?await env.DB.batch([claim,refund]):await env.DB.batch([claim]);
+  if(Number(results?.[0]?.meta?.changes??0)!==1)return {ok:false,error:'SESSION_ALREADY_RESOLVED'};
+  if(stake>0&&Number(results?.[1]?.meta?.changes??0)!==1)throw Error('WALLET_REFUND_FAILED');
   return {ok:true,refunded:stake};
 }
 export async function expireSessions(env){
   const rows=await env.DB.prepare('SELECT id,player_id,stake FROM game_sessions WHERE reward_applied=0 AND expires_at<? AND result IS NULL').bind(now()).all();
   let expired=0;
   for(const s of rows.results||[]){
-    const claim=await env.DB.prepare("UPDATE game_sessions SET result='EXPIRED',reward_applied=1 WHERE id=? AND reward_applied=0 AND result IS NULL").bind(s.id).run();
-    if(!claim.meta?.changes)continue;
-    if(Number(s.stake)>0){const refund=await env.DB.batch([env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(Number(s.stake),s.player_id)]);if(Number(refund?.[0]?.meta?.changes??0)!==1)throw Error('WALLET_REFUND_FAILED');}
+    const stake=Number(s.stake)||0;
+    const claim=env.DB.prepare("UPDATE game_sessions SET result='EXPIRED',reward_applied=1 WHERE id=? AND reward_applied=0 AND result IS NULL").bind(s.id);
+    const refund=env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(stake,s.player_id);
+    const results=stake>0?await env.DB.batch([claim,refund]):await env.DB.batch([claim]);
+    if(Number(results?.[0]?.meta?.changes??0)!==1)continue;
+    if(stake>0&&Number(results?.[1]?.meta?.changes??0)!==1)throw Error('WALLET_REFUND_FAILED');
     expired++;
   }
   return {expired};
