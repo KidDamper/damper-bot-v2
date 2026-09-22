@@ -1,3 +1,5 @@
+import { credit } from './wallet.js';
+
 const now=()=>Math.floor(Date.now()/1000);
 export async function createSession(env,{id,type,chatId,playerId,state={},stake=0,ttl=900}){
   const expires=now()+ttl;
@@ -22,7 +24,7 @@ export async function cancelSession(env,id,playerId){
   const claim=await env.DB.prepare("UPDATE game_sessions SET result='CANCELLED',reward_applied=1 WHERE id=? AND player_id=? AND reward_applied=0 AND result IS NULL").bind(id,playerId).run();
   if(!claim.meta?.changes)return {ok:false,error:'SESSION_ALREADY_RESOLVED'};
   const stake=Number(s.stake)||0;
-  if(stake>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(stake,playerId).run();
+  if(stake>0)await credit(env,playerId,stake);
   return {ok:true,refunded:stake};
 }
 export async function expireSessions(env){
@@ -31,7 +33,7 @@ export async function expireSessions(env){
   for(const s of rows.results||[]){
     const claim=await env.DB.prepare("UPDATE game_sessions SET result='EXPIRED',reward_applied=1 WHERE id=? AND reward_applied=0 AND result IS NULL").bind(s.id).run();
     if(!claim.meta?.changes)continue;
-    if(Number(s.stake)>0)await env.DB.prepare('UPDATE wallets SET balance=balance+? WHERE user_id=?').bind(Number(s.stake),s.player_id).run();
+    if(Number(s.stake)>0)await credit(env,s.player_id,Number(s.stake));
     expired++;
   }
   return {expired};
