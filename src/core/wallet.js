@@ -2,8 +2,9 @@ const dbFor=(env,db)=>db||env.DB;
 
 export async function getBalance(env,userId,db=null){
   const dbx=dbFor(env,db);
-  await dbx.prepare('INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,500)').bind(userId).run();
-  const row=await dbx.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(userId).first();
+  const readDb=typeof dbx.withSession==='function'?dbx.withSession('first-primary'):dbx;
+  await readDb.prepare('INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,500)').bind(userId).run();
+  const row=await readDb.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(userId).first();
   if(!row)throw Error('WALLET_NOT_FOUND');
   const balance=Number(row.balance);
   if(!Number.isInteger(balance)||balance<0)throw Error('WALLET_BALANCE_INVALID');
