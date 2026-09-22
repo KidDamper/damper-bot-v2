@@ -3,7 +3,7 @@ import { socialMenu, socialPrompt } from './games/social-ui.js';
 import { startReactionTest, resolveReactionTest } from './games/reaction-service.js';
 import { nextQuestion, checkBrainAnswer, brainReward } from './games/brain-service.js';
 import { MENU_CONFIG } from './ui/menu-config.js';
-import { walletBalance, walletChange } from './core/wallet.js';
+import { getBalance, walletChange } from './core/wallet.js';
 
 const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme';
@@ -17,7 +17,7 @@ const ack=(env,id,text='')=>tg(env,'answerCallbackQuery',{callback_query_id:id,t
 const join=()=>({inline_keyboard:[[{text:'🧠 JOIN MEME CHANNEL',url:'https://t.me/nah_idmeme'}],[{text:'🔥 JOIN UPDATES CHANNEL',url:'https://t.me/Updamper_bot'}],[{text:'✅ CHECK MEMBERSHIP',callback_data:'check_membership'}]]});
 async function member(env,ch,id){const r=await tg(env,'getChatMember',{chat_id:ch,user_id:id});return !!(r.ok&&['creator','administrator','member'].includes(r.result?.status));}
 async function allowed(env,id){if(env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===String(id))return true;return member(env,MEME,id)&&member(env,UPDATES,id);}
-async function user(env,id){const db=env.DB;const u=await db.prepare('SELECT u.*,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(id)).first();if(!u)return u;const w=await db.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(u.id).first();return {...u,balance:Number(w?.balance??0)};}
+async function user(env,id){const db=env.DB;const u=await db.prepare('SELECT u.*,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?').bind(String(id)).first();if(!u)return u;const balance=await getBalance(env,u.id);return {...u,balance};}
 const mainMenu=()=>({inline_keyboard:(MENU_CONFIG.main||[]).reduce((rows,[text,callback_data],i)=>{if(i%2===0)rows.push([]);rows.at(-1).push({text,callback_data});return rows;},[])});
 const gamesMenu=()=>({inline_keyboard:[[{text:'🪙 COIN FLIP',callback_data:'game_coin'},{text:'🎲 DICE DUEL',callback_data:'game_dice'}],[{text:'💣 MINES',callback_data:'game_mines'},{text:'🎰 SLOTS',callback_data:'game_slots'}],[{text:'⚽ PENALTY',callback_data:'game_penalty'},{text:'🏁 VIRTUAL RACE',callback_data:'game_race'}],[{text:'🧠 BRAIN',callback_data:'safe_games_brain'},{text:'⚡ REACTION',callback_data:'games_reaction'}],[{text:'🎭 SOCIAL',callback_data:'games_social'}],[{text:'⬅️ BACK',callback_data:'menu_main'}]]});
 const brainMenu=()=>({inline_keyboard:[[{text:'🧠 TRIVIA',callback_data:'safe_brain_trivia'}],[{text:'➗ MATH',callback_data:'safe_brain_math'}],[{text:'🔤 ANAGRAM',callback_data:'safe_brain_anagram'}],[{text:'😀 EMOJI',callback_data:'safe_brain_emoji'}],[{text:'🏳️ FLAGS',callback_data:'safe_brain_flags'}],[{text:'⬅️ BACK',callback_data:'games_main'}]]});
@@ -109,7 +109,7 @@ ${r.prompt}
 Nice reaction.`,backGames());}
   if(d.startsWith('safe_reaction_cancel:')){const id=d.split(':')[1];const s=await env.DB.prepare('SELECT id FROM game_sessions WHERE id=? AND player_id=? AND result IS NULL').bind(id,u.id).first();if(!s)return send(env,chat,'⌛ Reaction test ended.',backGames());await finishSafeSession(env,id,'CANCELLED');return edit(env,chat,mid,'⚡ Reaction test cancelled.',reactionMenu().reply_markup);}
   if(d==='economy_main')return edit(env,chat,mid,'💰 *ECONOMY*\n━━━━━━━━━━━━━━\n\n🪙 *COINS*\nManage your virtual Damper Coins.\n\n⭐ *PROGRESSION*\nTrack your Level and XP.\n\n🎁 *REWARDS*\nClaim Daily Coins and use Give to transfer Coins.',menuPage('economy','ECONOMY','Choose an economy feature below.').reply_markup);
-  if(d==='economy_balance'){const db=env.DB;const check=await db.prepare('SELECT u.id AS user_id,u.telegram_id,w.user_id AS wallet_user_id,w.balance FROM users u LEFT JOIN wallets w ON w.user_id=u.id WHERE u.telegram_id=?').bind(String(q.from.id)).run();const row=check.results?.[0]||{};const xpRow=await db.prepare('SELECT damper_xp,level FROM xp WHERE user_id=?').bind(u.id).first();const balance=Number(row.balance??0);const debug='\n\n🔧 *SYNC*\nUSER ID: '+String(row.user_id??'missing')+' • WALLET ID: '+String(row.wallet_user_id??'missing')+' • DB: '+(check.meta?.served_by_primary??'unknown')+' • REGION: '+(check.meta?.served_by_region??'unknown')+' • V: wallet-diag-20260921';return edit(env,chat,mid,'💰 *BALANCE*\n━━━━━━━━━━━━━━\n\n🪙 *Coins*\n'+balance+'\n\n⭐ *Level*\n'+(xpRow?.level||1)+'\n\n✨ *XP*\n'+(xpRow?.damper_xp||0)+debug,backMain());}
+  if(d==='economy_balance'){const balance=await getBalance(env,u.id);const xpRow=await db.prepare('SELECT damper_xp,level FROM xp WHERE user_id=?').bind(u.id).first();const debug='\n\n🔧 *SYNC*\nUSER ID: USER ID: '+String(u.id)+' • WALLET: authoritative • V: wallet-system-20260922';return edit(env,chat,mid,'💰 *BALANCE*\n━━━━━━━━━━━━━━\n\n🪙 *Coins*\n'+balance+'\n\n⭐ *Level*\n'+(xpRow?.level||1)+'\n\n✨ *XP*\n'+(xpRow?.damper_xp||0)+debug,backMain());}
   if(d==='economy_daily')return edit(env,chat,mid,'🎁 *DAILY*\n\nUse /daily to claim your daily Coins.',backMain());
   if(d==='economy_give')return edit(env,chat,mid,'💸 *GIVE*\n\nUse /give @username amount to transfer virtual Coins.',backMain());
   if(d==='vault_cards'||d==='vault_pets'||d==='vault_numbered'||d==='vault_rpg'){
