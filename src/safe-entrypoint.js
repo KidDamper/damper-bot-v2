@@ -5,6 +5,7 @@ import { nextQuestion, checkBrainAnswer, brainReward } from './games/brain-servi
 import { MENU_CONFIG } from './ui/menu-config.js';
 import { getBalance, walletChange } from './core/wallet.js';
 
+const APP_VERSION='wallet-single-source-20260922';
 const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme';
 const UPDATES='@Updamper_bot';
