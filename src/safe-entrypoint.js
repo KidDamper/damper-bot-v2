@@ -181,6 +181,7 @@ export default {async fetch(request,env,ctx){if(request.method==='POST'&&new URL
   if(id!==OWNER_TELEGRAM_ID&&!(env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===id)){await send(env,chat,'⛔ Creator access only.');return new Response('OK');}
   const db=env.DB.withSession('first-primary');
   const usersByTelegram=await db.prepare('SELECT id,telegram_id,username,damper_id,role FROM users WHERE telegram_id=? ORDER BY id').bind(id).all();
+  const allUsers=await db.prepare('SELECT id,telegram_id,username,damper_id,role,created_at FROM users ORDER BY id').all();
   const usersByDamper=await db.prepare("SELECT id,telegram_id,username,damper_id,role FROM users WHERE damper_id='001' ORDER BY id").all();
   const ids=[1,3];
   const wallets=await db.prepare('SELECT user_id,balance FROM wallets WHERE user_id IN (?,?) ORDER BY user_id').bind(...ids).all();
@@ -193,6 +194,7 @@ export default {async fetch(request,env,ctx){if(request.method==='POST'&&new URL
   const lineResults=fmtRows(results.results,x=>'#'+x.user_id+': games '+x.games+', staked '+x.staked+', payouts '+x.payouts);
   const lineStats=fmtRows(stats.results,x=>'#'+x.user_id+': games '+x.games_played+', wins '+x.games_won+', losses '+x.games_lost+', staked '+x.total_staked);
   const lineSessions=fmtRows(sessions.results,x=>'#'+x.player_id+': '+x.count+' sessions, latest '+x.latest);
-  await send(env,chat,'🔧 *WALLET IDENTITY DEBUG*\\n━━━━━━━━━━━━━━\\n\\nTelegram matches\\n'+fmtUsers(usersByTelegram.results)+'\\n\\nDamper 001 matches\\n'+fmtUsers(usersByDamper.results)+'\\n\\nWallets 1/3\\n'+lineWallets+'\\n\\nGame results 1/3\\n'+lineResults+'\\n\\nStats 1/3\\n'+lineStats+'\\n\\nSessions 1/3\\n'+lineSessions+'\\n\\nV: owner-001-wallet-identity-debug-r4');
+  const lineAllUsers=fmtRows(allUsers.results,x=>'#'+x.id+' tg='+x.telegram_id+' username='+(x.username||'—')+' damper='+x.damper_id+' role='+x.role);
+  await send(env,chat,'🔧 *WALLET IDENTITY DEBUG*\\n━━━━━━━━━━━━━━\\n\\nCurrent Telegram\\n'+id+'\\n\\nAll users\\n'+lineAllUsers+'\\n\\nTelegram matches\\n'+fmtUsers(usersByTelegram.results)+'\\n\\nDamper 001 matches\\n'+fmtUsers(usersByDamper.results)+'\\n\\nWallets 1/3\\n'+lineWallets+'\\n\\nGame results 1/3\\n'+lineResults+'\\n\\nStats 1/3\\n'+lineStats+'\\n\\nSessions 1/3\\n'+lineSessions+'\\n\\nV: owner-001-wallet-identity-debug-r5');
   return new Response('OK');
 }if(update.message?.text?.trim().split(/\\s+/)[0].toLowerCase()==='/menu'){await photo(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());return new Response('OK');}if(update.message){const handled=await handleSafeMessage(env,update.message);if(handled!==false)return new Response('OK');}if(update.callback_query){const handled=await safeCallback(env,update.callback_query);if(handled!==false)return new Response('OK');}}catch(e){console.error('safe wrapper error',e);}}return base.fetch(request,env,ctx);}};
