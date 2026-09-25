@@ -5,7 +5,7 @@ import { reactionReward } from './games/reaction.js';
 import { getBalance, credit, debit, walletChange } from './core/wallet.js';
 import { ownerConsole, isOwner } from './owner/console.js';
 
-const APP_VERSION='wallet-authority-20260925';
+const APP_VERSION='wallet-authority-20260925-r3';
 const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme',UPDATES='@Updamper_bot',MIN=50,now=()=>Math.floor(Date.now()/1000);
 const kb=inline_keyboard=>({inline_keyboard});
