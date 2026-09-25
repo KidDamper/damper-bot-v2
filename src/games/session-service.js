@@ -1,5 +1,5 @@
 import { sessionId, createSession, getSession, updateSession, finishSession } from '../core/sessions.js';
-import { debit } from '../core/wallet.js';
+import { debit, credit } from '../core/wallet.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 
