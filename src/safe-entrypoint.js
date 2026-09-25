@@ -5,7 +5,7 @@ import { nextQuestion, checkBrainAnswer, brainReward } from './games/brain-servi
 import { MENU_CONFIG } from './ui/menu-config.js';
 import { getBalance, walletChange } from './core/wallet.js';
 
-const APP_VERSION='wallet-single-source-20260922';
+const APP_VERSION='wallet-authority-20260925';
 const BANNER_FILE_ID='AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA';
 const MEME='@nah_idmeme';
 const UPDATES='@Updamper_bot';
@@ -110,7 +110,7 @@ ${r.prompt}
 Nice reaction.`,backGames());}
   if(d.startsWith('safe_reaction_cancel:')){const id=d.split(':')[1];const s=await env.DB.prepare('SELECT id FROM game_sessions WHERE id=? AND player_id=? AND result IS NULL').bind(id,u.id).first();if(!s)return send(env,chat,'⌛ Reaction test ended.',backGames());await finishSafeSession(env,id,'CANCELLED');return edit(env,chat,mid,'⚡ Reaction test cancelled.',reactionMenu().reply_markup);}
   if(d==='economy_main')return edit(env,chat,mid,'💰 *ECONOMY*\n━━━━━━━━━━━━━━\n\n🪙 *COINS*\nManage your virtual Damper Coins.\n\n⭐ *PROGRESSION*\nTrack your Level and XP.\n\n🎁 *REWARDS*\nClaim Daily Coins and use Give to transfer Coins.',menuPage('economy','ECONOMY','Choose an economy feature below.').reply_markup);
-  if(d==='economy_balance'){const walletRow=await env.DB.prepare('SELECT balance FROM wallets WHERE user_id=?').bind(u.id).first();const balance=Number(walletRow?.balance??0);return edit(env,chat,mid,'💰 *BALANCE*\\n━━━━━━━━━━━━━━\\n\\n🪙 *Coins*\\n'+balance,backMain());}
+  if(d==='economy_balance'){const balance=await getBalance(env,u.id);return edit(env,chat,mid,'💰 *BALANCE*\\n━━━━━━━━━━━━━━\\n\\n🪙 *Coins*\\n'+balance+'\\n\\n🔧 SYNC\\nV: wallet-authority-20260925',backMain());}
   if(d==='economy_daily')return edit(env,chat,mid,'🎁 *DAILY*\n\nUse /daily to claim your daily Coins.',backMain());
   if(d==='economy_give')return edit(env,chat,mid,'💸 *GIVE*\n\nUse /give @username amount to transfer virtual Coins.',backMain());
   if(d==='vault_cards'||d==='vault_pets'||d==='vault_numbered'||d==='vault_rpg'){
