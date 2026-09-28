@@ -1,48 +1,117 @@
-import { walletChange } from './core/wallet.js';
-const BANNER_FILE_ID="AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA";
-const MEME_CHANNEL="@nah_idmeme",UPDATE_CHANNEL="@Updamper_bot",MIN_WAGER=50,DAY=86400,NOW=()=>Math.floor(Date.now()/1000);
-async function tg(env,m,b){const r=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${m}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});return r.json()}
-const kb=rows=>({inline_keyboard:rows});
-const send=(env,id,text,reply_markup)=>tg(env,"sendMessage",{chat_id:id,text,parse_mode:"Markdown",...(reply_markup?{reply_markup}:{})});
-const photo=(env,id,caption,reply_markup)=>tg(env,"sendPhoto",{chat_id:id,photo:BANNER_FILE_ID,caption,parse_mode:"Markdown",...(reply_markup?{reply_markup}:{})});
-const edit=(env,id,mid,text,reply_markup)=>tg(env,"editMessageText",{chat_id:id,message_id:mid,text,parse_mode:"Markdown",...(reply_markup?{reply_markup}:{})});
-const ack=(env,id,text="")=>tg(env,"answerCallbackQuery",{callback_query_id:id,text});
-const mainKeyboard=()=>kb([[{text:"🎮 GAMES",callback_data:"menu_games"},{text:"💰 ECONOMY",callback_data:"menu_economy"}],[{text:"⚔️ RPG",callback_data:"menu_rpg"},{text:"🛒 SHOP",callback_data:"menu_shop"}],[{text:"🗃️ VAULT",callback_data:"menu_vault"},{text:"📊 LEADERBOARD",callback_data:"menu_leaderboard"}],[{text:"👤 PROFILE",callback_data:"menu_profile"},{text:"❓ HELP",callback_data:"menu_help"}]]);
-const back=()=>kb([[{text:"⬅️ BACK",callback_data:"menu_main"}]]);
-const joinKeyboard=()=>kb([[{text:"🧠 JOIN MEME CHANNEL",url:"https://t.me/nah_idmeme"}],[{text:"🔥 JOIN UPDATES CHANNEL",url:"https://t.me/Updamper_bot"}],[{text:"✅ CHECK MEMBERSHIP",callback_data:"check_membership"}]]);
-const gamesKeyboard=()=>kb([[{text:"🪙 COIN FLIP",callback_data:"game_coin"},{text:"🎲 DICE DUEL",callback_data:"game_dice"}],[{text:"💣 MINES",callback_data:"game_mines"},{text:"🎰 SLOTS",callback_data:"game_slots"}],[{text:"⚽ PENALTY",callback_data:"game_penalty"},{text:"🏁 VIRTUAL RACE",callback_data:"game_race"}],[{text:"🧠 BRAIN",callback_data:"game_brain"},{text:"⚡ REACTION",callback_data:"game_reaction"}],[{text:"⬅️ BACK",callback_data:"menu_main"}]]);
-const economyKeyboard=()=>kb([[{text:"💰 BALANCE",callback_data:"eco_balance"},{text:"🎁 DAILY",callback_data:"eco_daily"}],[{text:"📊 STATS",callback_data:"eco_stats"},{text:"⬅️ BACK",callback_data:"menu_main"}]]);
-const shopKeyboard=()=>kb([[{text:"🃏 CARDS",callback_data:"shop_cards"},{text:"🐾 PETS",callback_data:"shop_pets"}],[{text:"🔢 NUMBERED ITEMS",callback_data:"shop_numbered"}],[{text:"⬅️ BACK",callback_data:"menu_main"}]]);
-const vaultKeyboard=()=>kb([[{text:"🃏 CARDS",callback_data:"vault_cards"},{text:"🐾 PETS",callback_data:"vault_pets"}],[{text:"🔢 NUMBERED",callback_data:"vault_numbered"},{text:"🏆 ACHIEVEMENTS",callback_data:"vault_achievements"}],[{text:"🎖️ TITLES",callback_data:"vault_titles"},{text:"⚔️ RPG INVENTORY",callback_data:"vault_rpg"}],[{text:"⬅️ BACK",callback_data:"menu_main"}]]);
-const stakeKeyboard=(game,icon)=>kb([[{text:`${icon} 50`,callback_data:`stake:${game}:50`},{text:`${icon} 100`,callback_data:`stake:${game}:100`}],[{text:`${icon} 250`,callback_data:`stake:${game}:250`},{text:"✏️ CUSTOM",callback_data:`stake_custom:${game}`}],[{text:"⬅️ BACK",callback_data:"menu_games"}]]);
-function randomId5(){return String(Math.floor(10000+Math.random()*90000))}
-async function uniqueDamperId(env){for(let i=0;i<50;i++){const id=randomId5();if(!(await env.DB.prepare("SELECT id FROM users WHERE damper_id=?").bind(id).first()))return id}throw new Error("ID allocation failed")}
-async function owner(env,id){return !!env.OWNER_TELEGRAM_ID&&String(env.OWNER_TELEGRAM_ID)===String(id)}
-async function getUser(env,id){return env.DB.prepare("SELECT u.*,w.balance,x.damper_xp,x.level,x.rpg_xp,x.rpg_level FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=?").bind(String(id)).first()}
-async function ensureStats(env,id){await env.DB.prepare("INSERT OR IGNORE INTO stats(user_id) VALUES(?)").bind(id).run()}
-async function ensureAccount(env,from){let u=await getUser(env,from.id);if(u){if(from.username&&from.username!==u.username)await env.DB.prepare("UPDATE users SET username=? WHERE id=?").bind(from.username,u.id).run();return getUser(env,from.id)}const damperId=await uniqueDamperId(env),now=NOW();await env.DB.prepare("INSERT INTO users(telegram_id,username,damper_id,role,created_at) VALUES(?,?,?,?,?)").bind(String(from.id),from.username||null,damperId,await owner(env,from.id)?"OWNER":"PLAYER",now).run();u=await getUser(env,from.id);await env.DB.prepare("INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,?)").bind(u.id,500).run();await env.DB.prepare("INSERT OR IGNORE INTO xp(user_id,damper_xp,level,rpg_xp,rpg_level) VALUES(?,0,1,0,1)").bind(u.id).run();await ensureStats(env,u.id);await env.DB.prepare("INSERT OR IGNORE INTO user_achievements(user_id,achievement_id,unlocked_at) VALUES(?,?,?)").bind(u.id,"getting_started",now).run();return getUser(env,from.id)}
-async function isMember(env,ch,id){const r=await tg(env,"getChatMember",{chat_id:ch,user_id:id});return !!(r.ok&&["creator","administrator","member"].includes(r.result?.status))}
-async function hasAccess(env,from){if(await owner(env,from.id))return true;return await isMember(env,MEME_CHANNEL,from.id)&&await isMember(env,UPDATE_CHANNEL,from.id)}
-async function tx(env,id,amount,type,source){await env.DB.prepare("INSERT INTO transactions(user_id,amount,type,source,reference,created_at) VALUES(?,?,?,?,?,?)").bind(id,amount,type,source,crypto.randomUUID(),NOW()).run()}
-async function coins(env,id,amount,type,source){const n=Number(amount);if(!Number.isInteger(n))throw Error("INVALID_AMOUNT");await walletChange(env,id,n);await tx(env,id,n,type,source);if(n>0&&source!=="creator_gift")await env.DB.prepare("UPDATE stats SET coins_earned=coins_earned+? WHERE user_id=?").bind(n,id).run();if(n<0)await env.DB.prepare("UPDATE stats SET coins_lost=coins_lost+? WHERE user_id=?").bind(-n,id).run()}
-function levelForXp(total){let level=1,need=100,x=total;while(x>=need&&level<100){x-=need;level++;need=100+(level-1)*50}return level}
-async function xp(env,id,amount,source="normal"){if(amount<=0)return;const row=await env.DB.prepare("SELECT damper_xp FROM xp WHERE user_id=?").bind(id).first(),total=(row?.damper_xp||0)+amount;await env.DB.prepare("UPDATE xp SET damper_xp=?,level=? WHERE user_id=?").bind(total,levelForXp(total),id).run();if(source!=="creator_gift")await env.DB.prepare("UPDATE stats SET xp_earned=xp_earned+? WHERE user_id=?").bind(amount,id).run()}
-async function achievement(env,id,a){await env.DB.prepare("INSERT OR IGNORE INTO user_achievements(user_id,achievement_id,unlocked_at) VALUES(?,?,?)").bind(id,a,NOW()).run()}
-async function gameRecord(env,id,type,outcome,stake,payout,gainXp){await ensureStats(env,id);await env.DB.prepare("UPDATE stats SET games_played=games_played+1,games_won=games_won+?,games_lost=games_lost+?,wager_games=wager_games+?,total_staked=total_staked+?,total_won=total_won+?,total_lost=total_lost+?,biggest_stake=MAX(biggest_stake,?),biggest_payout=MAX(biggest_payout,?) WHERE user_id=?").bind(outcome==="WIN"?1:0,outcome==="LOSS"?1:0,stake>0?1:0,stake,Math.max(0,payout-stake),Math.max(0,stake-payout),stake,payout,id).run();await env.DB.prepare("INSERT INTO game_results(user_id,game_type,outcome,stake,payout,xp,created_at) VALUES(?,?,?,?,?,?,?)").bind(id,type,outcome,stake,payout,gainXp,NOW()).run();await xp(env,id,gainXp);if(outcome==="WIN")await achievement(env,id,"first_win")}
-function result(type,stake,choice){if(type==="DICE_DUEL"){const a=1+Math.floor(Math.random()*6),b=1+Math.floor(Math.random()*6),o=a>b?"WIN":a===b?"DRAW":"LOSS";return {outcome:o,mult:o==="WIN"?1.8:o==="DRAW"?1:0,xp:o==="WIN"?10:o==="DRAW"?4:2,text:`🎲 *DICE DUEL*\n\nYou: ${a}\nBot: ${b}\n\n${o==="WIN"?"You win.":o==="DRAW"?"Draw — stake returned.":"You lose."}`}}
-if(type==="PENALTY"){const keeper=["left","right","center","top-left","top-right"][Math.floor(Math.random()*5)],goal=keeper!==choice,mult=goal?(choice==="center"?1.4:["left","right"].includes(choice)?2:3):0;return {outcome:goal?"WIN":"LOSS",mult,xp:goal?15:2,text:`⚽ *PENALTY*\n\nShot: ${choice}\nKeeper: ${keeper}\n\n${goal?"🥅 GOAL!":"🧤 SAVED!"}`}}
-if(type==="SLOTS"){const s=["🍒","🍋","🔔","⭐","7️⃣"],r=[0,0,0].map(()=>s[Math.floor(Math.random()*s.length)]),c=Object.fromEntries(s.map(x=>[x,r.filter(y=>y===x).length])),m=Math.max(...Object.values(c)),kind=c["7️⃣"]===3?"JACKPOT":c["7️⃣"]===2?"SPECIAL":m===3?"THREE":m===2?"TWO":"NONE",mult={NONE:0,TWO:1.25,THREE:3,SPECIAL:7,JACKPOT:15}[kind];return {outcome:mult?"WIN":"LOSS",mult,xp:mult?10:2,text:`🎰 *SLOTS*\n\n${r.join(" | ")}\nResult: ${kind}`}}
-if(type==="RACE"){const p=[0,1,2,3].map(i=>({i,r:Math.random()})).sort((a,b)=>b.r-a.r),pos=p.findIndex(x=>x.i===0)+1,mult=pos===1?3:pos===2?1.5:pos===3?.75:0;return {outcome:mult?"WIN":"LOSS",mult,xp:mult?10:2,text:`🏁 *VIRTUAL RACE*\n\nYou finished ${pos}${pos===1?"st":pos===2?"nd":pos===3?"rd":"th"}.`}}
-return null}
-async function wager(env,chatId,u,type,stake,choice=null){if(!Number.isInteger(stake)||stake<MIN_WAGER)return send(env,chatId,"⚠️ Minimum wager is *50* Damper Coins.");if(stake>(u.balance||0))return send(env,chatId,"❌ You don't have enough Damper Coins.");const existing=await env.DB.prepare("SELECT id FROM game_sessions WHERE player_id=? AND result IS NULL AND expires_at>? LIMIT 1").bind(u.id,NOW()).first();if(existing)return send(env,chatId,"⏳ You already have an active game.");const sid=`tg_${crypto.randomUUID().replaceAll("-","").slice(0,12)}`;await coins(env,u.id,-stake,"WAGER_STAKE",type);await env.DB.prepare("INSERT INTO game_sessions(id,game_type,chat_id,player_id,state,stake,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?)").bind(sid,type,String(chatId),u.id,JSON.stringify({choice}),stake,NOW()+900,NOW()).run();if(type==="PENALTY"&&choice===null)return send(env,chatId,"⚽ *PENALTY*\n\nChoose your shot:",kb([[{text:"⬅️ LEFT",callback_data:`penalty:${sid}:left`},{text:"🎯 CENTER",callback_data:`penalty:${sid}:center`}],[{text:"➡️ RIGHT",callback_data:`penalty:${sid}:right"}],[{text:"↖️ TOP LEFT",callback_data:`penalty:${sid}:top-left`},{text:"↗️ TOP RIGHT",callback_data:`penalty:${sid}:top-right`}]]));const r=result(type,stake,choice);if(!r)return send(env,chatId,"⚠️ Game engine unavailable.");const payout=Math.floor(stake*r.mult);if(payout)await coins(env,u.id,payout,"WAGER_PAYOUT",type);await gameRecord(env,u.id,type,r.outcome,stake,payout,r.xp);await env.DB.prepare("UPDATE game_sessions SET result=?,reward_applied=1 WHERE id=? AND reward_applied=0").bind(JSON.stringify(r),sid).run();return send(env,chatId,`${r.text}\n\n${payout?`💰 Payout: *${payout}*`:`💸 Lost: *${stake}*`}\n✨ +${r.xp} XP`)}
-async function showBalance(env,id,u){return send(env,id,`💰 *BALANCE*\n\n🪙 ${u.balance||0} Damper Coins\n⭐ Level ${u.level||1}\n✨ ${u.damper_xp||0} XP`)}
-async function showProfile(env,id,u){return send(env,id,`👤 *PROFILE*\n\nUsername: ${u.username?`@${u.username}`:"—"}\n🆔 Damper ID: \`${u.damper_id}\`\n💰 Coins: ${u.balance||0}\n⭐ Level: ${u.level||1}\n✨ XP: ${u.damper_xp||0}${u.role==="OWNER"?"\n\n👑 *CREATOR*":""}`)}
-async function showStats(env,id,u){const s=await env.DB.prepare("SELECT * FROM stats WHERE user_id=?").bind(u.id).first();return send(env,id,`📊 *STATS*\n\n🎮 Games: ${s?.games_played||0}\n🏆 Wins: ${s?.games_won||0}\n💀 Losses: ${s?.games_lost||0}\n💰 Coins earned: ${s?.coins_earned||0}\n💸 Coins lost: ${s?.coins_lost||0}\n🎲 Wagered: ${s?.total_staked||0}`)}
-async function command(env,msg,text){const chatId=msg.chat.id,c=String(text||"").trim().split(/\s+/)[0].toLowerCase(),from=msg.from;if(c==="/start"){if(!(await hasAccess(env,from)))return photo(env,chatId,"🔥 *THE DAMPER_BOT V2*\n\nJoin both official KIDDAMPER channels, then tap CHECK MEMBERSHIP.",joinKeyboard());const u=await ensureAccount(env,from);return photo(env,chatId,`🔥 *THE DAMPER_BOT V2*\n\nWelcome${u.username?`, @${u.username}`:""}.\n\n🆔 Damper ID: \`${u.damper_id}\`\n💰 Balance: ${u.balance||0} Coins\n⭐ Level: ${u.level||1}\n\nChoose your destination.`,mainKeyboard())}if(!(await hasAccess(env,from)))return send(env,chatId,"🔒 Access is locked. Use /start to verify both channels.",joinKeyboard());const u=await ensureAccount(env,from);if(c==="/menu")return send(env,chatId,"🔥 *THE DAMPER_BOT V2*\n\nChoose your destination.",mainKeyboard());if(c==="/balance")return showBalance(env,chatId,u);if(c==="/profile")return showProfile(env,chatId,u);if(c==="/stats")return showStats(env,chatId,u);if(c==="/daily")return daily(env,chatId,u);if(c==="/games")return send(env,chatId,"🎮 *GAMES*\n\nPick a game:",gamesKeyboard());if(c==="/shop")return send(env,chatId,"🛒 *SHOP*",shopKeyboard());if(c==="/vault")return vault(env,chatId,u);if(c==="/leaderboard")return leaderboard(env,chatId);if(c==="/rpg")return rpgMenu(env,chatId,u);if(c==="/ping")return send(env,chatId,"🏓 Pong! V2 is alive.");if(c==="/help")return send(env,chatId,"❓ *HELP*\n\n/start /menu /games /balance /daily /give /profile /stats /leaderboard /shop /vault /rpg /ping");if(c==="/dice")return wager(env,chatId,u,"DICE_DUEL",stakeOf(text));if(c==="/penalty"){const p=String(text).trim().split(/\s+/),d=p[1]?.toLowerCase(),s=Number(p[2]);if(!["left","right","center","top-left","top-right"].includes(d))return send(env,chatId,"⚽ Usage: /penalty <direction> <wager>");return wager(env,chatId,u,"PENALTY",s,d)}if(c==="/slots")return wager(env,chatId,u,"SLOTS",stakeOf(text));if(c==="/race")return wager(env,chatId,u,"RACE",stakeOf(text));return send(env,chatId,"🤔 I don't know that command yet. Try /help.")}
-function stakeOf(t){const a=String(t).trim().split(/\s+/),n=Number(a[a.length-1]);return Number.isFinite(n)?Math.floor(n):null}
-async function daily(env,id,u){if(u.role==="OWNER")return send(env,id,"👑 *CREATOR MODE*\n\nDaily rewards are unnecessary here.");const r=await env.DB.prepare("SELECT expires_at FROM cooldowns WHERE user_id=? AND key='daily'").bind(u.id).first();if(r?.expires_at>NOW())return send(env,id,`⏳ Daily cooldown. Try again <t:${r.expires_at}:R>.`);await coins(env,u.id,200,"DAILY","daily");await env.DB.prepare("INSERT OR REPLACE INTO cooldowns(user_id,key,expires_at) VALUES(?,?,?)").bind(u.id,"daily",NOW()+DAY).run();await achievement(env,u.id,"first_daily");return send(env,id,"🎁 *DAILY CLAIMED*\n\n💰 +200 Damper Coins")}
-async function vault(env,id,u,section){if(section==="vault_cards"){const r=await env.DB.prepare("SELECT c.name,c.tier,uc.quantity FROM user_cards uc JOIN cards c ON c.id=uc.card_id WHERE uc.user_id=?").bind(u.id).all();return send(env,id,`🃏 *CARDS*\n\n${r.results?.map(x=>`• ${x.name} — ${x.tier} ×${x.quantity}`).join("\n")||"No cards yet."}`)}if(section==="vault_pets"){const r=await env.DB.prepare("SELECT p.name,p.tier,p.luck FROM user_pets up JOIN pets p ON p.id=up.pet_id WHERE up.user_id=?").bind(u.id).all();return send(env,id,`🐾 *PETS*\n\n${r.results?.map(x=>`• ${x.name} — ${x.tier} — Luck +${x.luck}`).join("\n")||"No pets yet."}`)}return send(env,id,"🗃️ *VAULT*",vaultKeyboard())}
-async function leaderboard(env,id){const r=await env.DB.prepare("SELECT u.username,u.damper_id,w.balance FROM users u JOIN wallets w ON w.user_id=u.id WHERE u.role!='OWNER' ORDER BY w.balance DESC LIMIT 10").all();return send(env,id,`📊 *RICHEST PLAYERS*\n\n${r.results?.map((x,i)=>`${i+1}. ${x.username?`@${x.username}`:`ID ${x.damper_id}`} — ${x.balance}`).join("\n")||"No players yet."}`)}
-async function rpgMenu(env,id,u){return send(env,id,`⚔️ *RPG*\n\nLevel ${u.rpg_level||1}\nRPG XP ${u.rpg_xp||0}\n\nBattle system is being connected.` ,back())}
-async function callback(env,q){const from=q.from,chatId=q.message?.chat?.id,mid=q.message?.message_id,data=q.data||"";if(data==="check_membership"){const ok=await hasAccess(env,from);await ack(env,q.id,ok?"Membership verified":"Join both channels first.");if(ok)return edit(env,chatId,mid,"✅ *MEMBERSHIP VERIFIED*\n\nChoose your destination.",mainKeyboard());return edit(env,chatId,mid,"❌ You still need to join both channels.",joinKeyboard())}if(!(await hasAccess(env,from))){await ack(env,q.id,"Join both channels first.");return edit(env,chatId,mid,"🔒 *ACCESS LOCKED*\n\nJoin both official channels, then check membership.",joinKeyboard())}const u=await ensureAccount(env,from);await ack(env,q.id);if(data==="menu_main")return edit(env,chatId,mid,"🔥 *THE DAMPER_BOT V2*\n\nChoose your destination.",mainKeyboard());if(data==="menu_games")return edit(env,chatId,mid,"🎮 *GAMES*\n\nWager minimum: 50 Damper Coins.",gamesKeyboard());if(data==="menu_economy")return edit(env,chatId,mid,"💰 *ECONOMY*",economyKeyboard());if(data==="menu_shop")return edit(env,chatId,mid,"🛒 *SHOP*",shopKeyboard());if(data==="menu_vault")return edit(env,chatId,mid,"🗃️ *VAULT*",vaultKeyboard());if(data==="menu_profile")return showProfile(env,chatId,u);if(data==="menu_leaderboard")return leaderboard(env,chatId);if(data==="menu_rpg")return rpgMenu(env,chatId,u);if(data.startsWith("stake:")){const [,g,s]=data.split(":");const type={dice:"DICE_DUEL",slots:"SLOTS",race:"RACE"}[g];if(!type)return send(env,chatId,"⚠️ Unknown game.");return wager(env,chatId,u,type,Number(s))}if(data.startsWith("penalty:")){const [,sid,direction]=data.split(":");const s=await env.DB.prepare("SELECT * FROM game_sessions WHERE id=? AND player_id=?").bind(sid,u.id).first();if(!s||s.reward_applied)return send(env,chatId,"⌛ This penalty session has ended.");const r=result("PENALTY",s.stake,direction),p=Math.floor(s.stake*r.mult);if(p)await coins(env,u.id,p,"WAGER_PAYOUT","PENALTY");await gameRecord(env,u.id,"PENALTY",r.outcome,s.stake,p,r.xp);await env.DB.prepare("UPDATE game_sessions SET state=?,result=?,reward_applied=1 WHERE id=? AND reward_applied=0").bind(JSON.stringify({direction}),JSON.stringify(r),sid).run();return edit(env,chatId,mid,`${r.text}\n\n${p?`💰 Payout: *${p}*`:`💸 Lost: *${s.stake}*`}\n✨ +${r.xp} XP`,back())}if(data.startsWith("game_")){const g=data.slice(5);if(g==="coin")return send(env,chatId,"🪙 *COIN FLIP*\n\nUse /coin 50.",back());if(g==="dice")return send(env,chatId,"🎲 *DICE DUEL*\n\nChoose your wager:",stakeKeyboard("dice","🎲"));if(g==="slots")return send(env,chatId,"🎰 *SLOTS*\n\nChoose your wager:",stakeKeyboard("slots","🎰"));if(g==="race")return send(env,chatId,"🏁 *VIRTUAL RACE*\n\nChoose your wager:",stakeKeyboard("race","🏁"));if(g==="penalty")return send(env,chatId,"⚽ *PENALTY*\n\nChoose your wager:",stakeKeyboard("penalty","⚽"));if(g==="mines")return send(env,chatId,"💣 *MINES*\n\n12 tiles / 3 mines. Interactive Mines wiring is next.",back());return send(env,chatId,"🧠 *GAME*\n\nThis mode is being connected.",back())}if(data.startsWith("eco_")){if(data==="eco_balance")return showBalance(env,chatId,u);if(data==="eco_daily")return daily(env,chatId,u);if(data==="eco_stats")return showStats(env,chatId,u)}if(data.startsWith("vault_"))return vault(env,chatId,u,data);return send(env,chatId,"That button is not available in this build.",back())}
-export default {async fetch(request,env){try{const url=new URL(request.url);if(url.pathname==="/"&&request.method==="GET"){const tables=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();return Response.json({status:"online",database:"connected",telegram:env.TELEGRAM_BOT_TOKEN?"configured":"missing",tables:tables.results||[]})}if(url.pathname==="/telegram/webhook"&&request.method==="POST"){const update=await request.json();if(update.callback_query)await callback(env,update.callback_query);else if(update.message?.text)await command(env,update.message,update.message.text);return new Response("OK")}return new Response("OK")}catch(e){console.error(e);return new Response("OK")}}};
+
+const V="clean-reset-001",OWNER="7852229418",OWNER_DID="001",MIN=50;
+const BANNER="AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA";
+const MEME="@nah_idmeme",UPDATES="@Updamper_bot",now=()=>Math.floor(Date.now()/1000);
+
+async function tg(e,m,b){const r=await fetch("https://api.telegram.org/bot"+e.TELEGRAM_BOT_TOKEN+"/"+m,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});return r.json();}
+const send=(e,c,t,k)=>tg(e,"sendMessage",{chat_id:c,text:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})});
+const edit=(e,c,m,t,k)=>tg(e,"editMessageText",{chat_id:c,message_id:m,text:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})});
+const photo=(e,c,t,k)=>tg(e,"sendPhoto",{chat_id:c,photo:BANNER,caption:t,parse_mode:"Markdown",reply_markup:k});
+const ack=(e,id)=>tg(e,"answerCallbackQuery",{callback_query_id:id});
+const back=(d="menu")=>({inline_keyboard:[[{text:"⬅️ BACK",callback_data:d}]]});
+const main=()=>({inline_keyboard:[[{text:"🎮 GAMES",callback_data:"games"},{text:"👤 PROFILE",callback_data:"profile"}],[{text:"💰 BALANCE",callback_data:"balance"},{text:"ℹ️ HELP",callback_data:"help"}]]});
+const games=()=>({inline_keyboard:[[{text:"🎲 DICE DUEL",callback_data:"dice"}],[{text:"⬅️ BACK",callback_data:"menu"}]]});
+const stakes=()=>({inline_keyboard:[[{text:"🪙 50",callback_data:"stake:50"},{text:"🪙 100",callback_data:"stake:100"}],[{text:"🪙 250",callback_data:"stake:250"}],[{text:"⬅️ GAMES",callback_data:"games"}]]});
+const join=()=>({inline_keyboard:[[{text:"🧠 JOIN MEME",url:"https://t.me/nah_idmeme"}],[{text:"🔥 JOIN UPDATES",url:"https://t.me/Updamper_bot"}],[{text:"✅ CHECK",callback_data:"check"}]]});
+
+async function setup(e){
+ const d=e.DB;
+ await d.batch([
+  d.prepare("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,telegram_id TEXT UNIQUE NOT NULL,username TEXT,damper_id TEXT UNIQUE NOT NULL,role TEXT NOT NULL DEFAULT 'PLAYER',created_at INTEGER NOT NULL)"),
+  d.prepare("CREATE TABLE IF NOT EXISTS wallets(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 500)"),
+  d.prepare("CREATE TABLE IF NOT EXISTS xp(user_id INTEGER PRIMARY KEY,damper_xp INTEGER NOT NULL DEFAULT 0,level INTEGER NOT NULL DEFAULT 1)"),
+  d.prepare("CREATE TABLE IF NOT EXISTS clean_wagers(id TEXT PRIMARY KEY,telegram_id TEXT NOT NULL,user_id INTEGER NOT NULL,stake INTEGER NOT NULL,result TEXT,payout INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)")
+ ]);
+}
+async function user(e,id){return e.DB.prepare("SELECT u.*,COALESCE(w.balance,500) balance,COALESCE(x.level,1) level,COALESCE(x.damper_xp,0) damper_xp FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=? LIMIT 1").bind(String(id)).first();}
+async function account(e,f){
+ const tid=String(f.id);let u=await user(e,tid);
+ if(!u){
+  let did=null;
+  if(tid===OWNER&&!await e.DB.prepare("SELECT id FROM users WHERE damper_id=?").bind(OWNER_DID).first())did=OWNER_DID;
+  for(let i=0;!did&&i<100;i++){const n=String(10000+Math.floor(Math.random()*90000));if(!await e.DB.prepare("SELECT id FROM users WHERE damper_id=?").bind(n).first())did=n;}
+  if(!did)throw Error("DAMper_ID_ALLOCATION_FAILED");
+  await e.DB.prepare("INSERT OR IGNORE INTO users(telegram_id,username,damper_id,role,created_at) VALUES(?,?,?,?,?)").bind(tid,f.username||null,did,tid===OWNER?"OWNER":"PLAYER",now()).run();
+  u=await user(e,tid);if(!u)throw Error("ACCOUNT_CREATE_FAILED");
+ }
+ await e.DB.prepare("INSERT OR IGNORE INTO wallets(user_id,balance) VALUES(?,500)").bind(u.id).run();
+ await e.DB.prepare("INSERT OR IGNORE INTO xp(user_id,damper_xp,level) VALUES(?,?,?)").bind(u.id,0,1).run();
+ u=await user(e,tid);
+ if(!u||String(u.telegram_id)!==tid)throw Error("ACCOUNT_IDENTITY_MISMATCH");
+ return u;
+}
+async function allowed(e,id){
+ if(String(id)===OWNER||String(e.OWNER_TELEGRAM_ID||"")===String(id))return true;
+ const a=await tg(e,"getChatMember",{chat_id:MEME,user_id:id}),b=await tg(e,"getChatMember",{chat_id:UPDATES,user_id:id});
+ const ok=x=>x&&x.ok&&["creator","administrator","member"].includes(x.result&&x.result.status);
+ return ok(a)&&ok(b);
+}
+async function home(e,c,m){const t="🔥 *THE DAMPER_BOT V2*\n\nChoose an option.";return m?edit(e,c,m,t,main()):photo(e,c,t,main());}
+
+async function start(e,u,stake){
+ const s=Number(stake);if(!Number.isInteger(s)||s<MIN)throw Error("MINIMUM_STAKE_50");
+ const w=await e.DB.prepare("SELECT balance FROM wallets WHERE user_id=?").bind(u.id).first();
+ if(Number(w&&w.balance)<s)throw Error("INSUFFICIENT_BALANCE");
+ const id="cw_"+crypto.randomUUID().replaceAll("-","").slice(0,14);
+ const debit=await e.DB.prepare("UPDATE wallets SET balance=balance-? WHERE user_id=? AND balance>=?").bind(s,u.id,s).run();
+ if(Number(debit&&debit.meta&&debit.meta.changes||0)!==1)throw Error("INSUFFICIENT_BALANCE");
+ try{
+  const made=await e.DB.prepare("INSERT INTO clean_wagers(id,telegram_id,user_id,stake,created_at) VALUES(?,?,?,?,?)").bind(id,String(u.telegram_id),u.id,s,now()).run();
+  if(Number(made&&made.meta&&made.meta.changes||0)!==1)throw Error("WAGER_CREATE_FAILED");
+ }catch(x){await e.DB.prepare("UPDATE wallets SET balance=balance+? WHERE user_id=?").bind(s,u.id).run();throw x;}
+ return id;
+}
+async function dice(e,c,m,u,id){
+ const s=await e.DB.prepare("SELECT * FROM clean_wagers WHERE id=? AND user_id=? AND result IS NULL").bind(id,u.id).first();
+ if(!s)return edit(e,c,m,"⌛ *This wager has ended.*",back("games"));
+ const you=1+Math.floor(Math.random()*6),bot=1+Math.floor(Math.random()*6);
+ const out=you===bot?"DRAW":you>bot?"WIN":"LOSS",payout=Math.floor(s.stake*(out==="WIN"?1.8:out==="DRAW"?1:0));
+ const claim=await e.DB.prepare("UPDATE clean_wagers SET result=?,payout=? WHERE id=? AND user_id=? AND result IS NULL").bind(out,payout,id,u.id).run();
+ if(Number(claim&&claim.meta&&claim.meta.changes||0)!==1)throw Error("WAGER_ALREADY_SETTLED");
+ if(payout)await e.DB.prepare("UPDATE wallets SET balance=balance+? WHERE user_id=?").bind(payout,u.id).run();
+ const w=await e.DB.prepare("SELECT balance FROM wallets WHERE user_id=?").bind(u.id).first();
+ const h=out==="WIN"?"🏆 *YOU WIN!*":out==="DRAW"?"🤝 *DRAW — STAKE RETURNED*":"❌ *YOU LOSE*";
+ return edit(e,c,m,"🎲 *DICE DUEL*\n\nYou: *"+you+"*\nBot: *"+bot+"*\n\n"+h+"\n\n💸 Stake: *"+s.stake+"* Coins\n💰 Payout: *"+payout+"* Coins\n💰 Balance: *"+Number(w&&w.balance||0)+"* Coins",back("games"));
+}
+
+async function command(e,x){
+ const c=x.chat.id,t=x.text||"";
+ if(t==="/ping")return send(e,c,"🏓 Pong! V2 is alive.\nV: "+V);
+ if(t==="/start"||t==="/menu"){if(!await allowed(e,x.from.id))return send(e,c,"🔥 *THE DAMPER_BOT V2*\n\nJoin both channels, then check membership.",join());await account(e,x.from);return home(e,c);}
+ if(!await allowed(e,x.from.id))return send(e,c,"🔒 *ACCESS LOCKED*\n\nJoin both official channels first.",join());
+ const u=await account(e,x.from);
+ if(t==="/balance")return send(e,c,"💰 *BALANCE*\n━━━━━━━━━━━━━━\n\n🪙 Coins: *"+u.balance+"*\n⭐ Level: *"+u.level+"*\n✨ XP: *"+u.damper_xp+"*",back());
+ if(t==="/profile")return send(e,c,"👤 *PROFILE*\n━━━━━━━━━━━━━━\n\nUsername: *"+(u.username?"@"+u.username:"—")+"*\nDamper ID: *"+u.damper_id+"*\n💰 Coins: *"+u.balance+"*\n⭐ Level: *"+u.level+"*\n✨ XP: *"+u.damper_xp+"*",back());
+ return send(e,c,"🤔 Use /menu to open the bot.",back());
+}
+async function callback(e,q){
+ const c=q.message&&q.message.chat&&q.message.chat.id,m=q.message&&q.message.message_id,d=String(q.data||"");await ack(e,q.id);
+ if(d==="check"){if(await allowed(e,q.from.id)){await account(e,q.from);return home(e,c,m);}return edit(e,c,m,"❌ *Membership not verified.*",join());}
+ if(!await allowed(e,q.from.id))return edit(e,c,m,"🔒 *ACCESS LOCKED*",join());
+ const u=await account(e,q.from.id);
+ if(d==="menu")return home(e,c,m);
+ if(d==="games")return edit(e,c,m,"🎮 *GAMES*\n━━━━━━━━━━━━━━\n\nVirtual Coin games. Minimum wager: *50 Coins*.",games());
+ if(d==="balance")return edit(e,c,m,"💰 *BALANCE*\n━━━━━━━━━━━━━━\n\n🪙 Coins: *"+u.balance+"*\n⭐ Level: *"+u.level+"*\n✨ XP: *"+u.damper_xp+"*",back());
+ if(d==="profile")return edit(e,c,m,"👤 *PROFILE*\n━━━━━━━━━━━━━━\n\nUsername: *"+(u.username?"@"+u.username:"—")+"*\nDamper ID: *"+u.damper_id+"*\n💰 Coins: *"+u.balance+"*\n⭐ Level: *"+u.level+"*\n✨ XP: *"+u.damper_xp+"*",back());
+ if(d==="help")return edit(e,c,m,"ℹ️ *HELP*\n━━━━━━━━━━━━━━\n\n🪙 Damper Coins are virtual only.\n🎮 Minimum wager: 50 Coins.\n\nUse the buttons to navigate.",back());
+ if(d==="dice")return edit(e,c,m,"🎲 *DICE DUEL*\n━━━━━━━━━━━━━━\n\nHigher roll wins. Draw returns the stake.\n\nChoose your wager:",stakes());
+ if(d.indexOf("stake:")===0){
+  const s=Number(d.split(":")[1]);
+  try{const id=await start(e,u,s);return dice(e,c,m,u,id);}
+  catch(x){return edit(e,c,m,"⚠️ *WAGER NOT STARTED*\n\n"+String(x&&x.message||x).slice(0,100),back("games"));}
+ }
+ return edit(e,c,m,"⚠️ That button is no longer available.",back());
+}
+export default {async fetch(request,e){
+ try{
+  await setup(e);const u=new URL(request.url);
+  if(request.method==="GET"&&u.pathname==="/")return Response.json({status:"online",version:V,database:"connected"});
+  if(request.method==="POST"&&u.pathname==="/telegram/webhook"){
+   const x=await request.json();
+   if(x.callback_query){try{await callback(e,x.callback_query);}catch(z){console.error("callback",z);const q=x.callback_query;if(q.message&&q.message.chat)await send(e,q.message.chat.id,"⚠️ *GAME ERROR*\n\n"+String(z&&z.message||z).slice(0,140),back()).catch(()=>{});}}
+   else if(x.message)await command(e,x.message);
+   return new Response("OK");
+  }
+  return new Response("OK");
+ }catch(x){console.error("worker",x);return new Response("OK");}
+}};
