@@ -36,7 +36,7 @@ async function setup(e){
  await d.prepare("CREATE TABLE IF NOT EXISTS runtime_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL,created_at INTEGER NOT NULL)").run();
  const meta=await d.prepare("SELECT value FROM runtime_meta WHERE key=? LIMIT 1").bind("schema").first();
  if(!meta||meta.value!==RESET){
-  const objects=await d.prepare("SELECT name,type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name<>?").bind("runtime_meta").all();
+  const objects=await d.prepare("SELECT name,type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name<>?").bind("runtime_meta").all();
   const drops=[];
   for(const o of (objects.results||[])){
    const n=String(o.name||"").replaceAll('"','""');
