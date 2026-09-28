@@ -5,7 +5,15 @@ const MEME="@nah_idmeme",UPDATES="@Updamper_bot",now=()=>Math.floor(Date.now()/1
 
 async function tg(e,m,b){const r=await fetch("https://api.telegram.org/bot"+e.TELEGRAM_BOT_TOKEN+"/"+m,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});return r.json();}
 const send=(e,c,t,k)=>tg(e,"sendMessage",{chat_id:c,text:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})});
-const edit=(e,c,m,t,k)=>tg(e,"editMessageText",{chat_id:c,message_id:m,text:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})});
+async function edit(e,c,m,t,k){
+ const body={chat_id:c,message_id:m,text:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})};
+ const a=await tg(e,"editMessageText",body);
+ if(a&&a.ok)return a;
+ const b=await tg(e,"editMessageCaption",{chat_id:c,message_id:m,caption:t,parse_mode:"Markdown",...(k?{reply_markup:k}:{})});
+ if(b&&b.ok)return b;
+ console.error("edit failed",a,b);
+ return b||a;
+}
 const photo=(e,c,t,k)=>tg(e,"sendPhoto",{chat_id:c,photo:BANNER,caption:t,parse_mode:"Markdown",reply_markup:k});
 const ack=(e,id)=>tg(e,"answerCallbackQuery",{callback_query_id:id});
 const back=(d="menu")=>({inline_keyboard:[[{text:"⬅️ BACK",callback_data:d}]]});
