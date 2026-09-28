@@ -130,11 +130,16 @@ async function callback(e,q){
 
 export default {async fetch(request,e){
  try{
-  await setup(e);
   const u=new URL(request.url);
-  if(request.method==="GET"&&u.pathname==="/")return Response.json({status:"online",version:V,database:"connected"});
+  if(request.method==="GET"&&u.pathname==="/")return Response.json({status:"online",version:V,database:"not-tested"});
   if(request.method==="POST"&&u.pathname==="/telegram/webhook"){
    const x=await request.json();
+   // /ping deliberately bypasses D1 so it can diagnose Worker/webhook health even if setup fails.
+   if(x.message&&x.message.text==="/ping"){
+    await send(e,x.message.chat.id,"🏓 Pong! V2 is alive.\\nV: "+V);
+    return new Response("OK");
+   }
+   await setup(e);
    if(x.callback_query){
     try{await callback(e,x.callback_query);}
     catch(z){
