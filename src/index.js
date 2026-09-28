@@ -28,8 +28,11 @@ async function setup(e){
   d.prepare("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,telegram_id TEXT UNIQUE NOT NULL,username TEXT,damper_id TEXT UNIQUE NOT NULL,role TEXT NOT NULL DEFAULT 'PLAYER',created_at INTEGER NOT NULL)"),
   d.prepare("CREATE TABLE IF NOT EXISTS wallets(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 500)"),
   d.prepare("CREATE TABLE IF NOT EXISTS xp(user_id INTEGER PRIMARY KEY,damper_xp INTEGER NOT NULL DEFAULT 0,level INTEGER NOT NULL DEFAULT 1)"),
-  d.prepare("CREATE TABLE IF NOT EXISTS clean_wagers(id TEXT PRIMARY KEY,telegram_id TEXT NOT NULL,user_id INTEGER NOT NULL,stake INTEGER NOT NULL,result TEXT,payout INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)")
+  d.prepare("CREATE TABLE IF NOT EXISTS clean_wagers(id TEXT PRIMARY KEY,telegram_id TEXT NOT NULL,user_id INTEGER NOT NULL,stake INTEGER NOT NULL,result TEXT,payout INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)"),
+  d.prepare("CREATE TABLE IF NOT EXISTS clean_migrations(id TEXT PRIMARY KEY,applied_at INTEGER NOT NULL)")
  ]);
+ const reset=await d.prepare("INSERT OR IGNORE INTO clean_migrations(id,applied_at) VALUES(?,?)").bind("economy-reset-001",now()).run();
+ if(Number(reset&&reset.meta&&reset.meta.changes||0)===1) await d.prepare("UPDATE wallets SET balance=500").run();
 }
 async function user(e,id){return e.DB.prepare("SELECT u.*,COALESCE(w.balance,500) balance,COALESCE(x.level,1) level,COALESCE(x.damper_xp,0) damper_xp FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=? LIMIT 1").bind(String(id)).first();}
 async function account(e,f){
