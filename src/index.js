@@ -1,5 +1,5 @@
 
-const V="clean-reset-001",OWNER="7852229418",OWNER_DID="001",MIN=50;
+const V="clean-reset-002",OWNER="7852229418",OWNER_DID="001",MIN=50;
 const BANNER="AgACAgQAAxkBAAMIaqrLcsPcHMx7oPIUstU4FEnr7UYAAuEYaxsFs1lRZUeHg_eeON4BAAMCAAN5AAM9BA";
 const MEME="@nah_idmeme",UPDATES="@Updamper_bot",now=()=>Math.floor(Date.now()/1000);
 
@@ -31,8 +31,15 @@ async function setup(e){
   d.prepare("CREATE TABLE IF NOT EXISTS clean_wagers(id TEXT PRIMARY KEY,telegram_id TEXT NOT NULL,user_id INTEGER NOT NULL,stake INTEGER NOT NULL,result TEXT,payout INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)"),
   d.prepare("CREATE TABLE IF NOT EXISTS clean_migrations(id TEXT PRIMARY KEY,applied_at INTEGER NOT NULL)")
  ]);
- const reset=await d.prepare("INSERT OR IGNORE INTO clean_migrations(id,applied_at) VALUES(?,?)").bind("economy-reset-001",now()).run();
- if(Number(reset&&reset.meta&&reset.meta.changes||0)===1) await d.prepare("UPDATE wallets SET balance=500").run();
+ const reset=await d.prepare("INSERT OR IGNORE INTO clean_migrations(id,applied_at) VALUES(?,?)").bind("full-reset-001",now()).run();
+ if(Number(reset&&reset.meta&&reset.meta.changes||0)===1){
+  await d.batch([
+   d.prepare("DELETE FROM clean_wagers"),
+   d.prepare("DELETE FROM wallets"),
+   d.prepare("DELETE FROM xp"),
+   d.prepare("DELETE FROM users")
+  ]);
+ }
 }
 async function user(e,id){return e.DB.prepare("SELECT u.*,COALESCE(w.balance,500) balance,COALESCE(x.level,1) level,COALESCE(x.damper_xp,0) damper_xp FROM users u LEFT JOIN wallets w ON w.user_id=u.id LEFT JOIN xp x ON x.user_id=u.id WHERE u.telegram_id=? LIMIT 1").bind(String(id)).first();}
 async function account(e,f){
