@@ -77,8 +77,7 @@ async function handleSafeMessage(env,msg){if(!msg?.text||msg.text.startsWith('/'
 
 🧠 *Next question*
 
-${next.question}`,questionMarkup(next,id));}
-  if(s.game_type.startsWith('SOCIAL_')){await finishSafeSession(env,s.id,'ANSWERED');const mode=state.mode||'random';const r=socialPrompt(mode,[]);const id=await createSafeSession(env,u.id,msg.chat.id,`SOCIAL_${mode.toUpperCase()}`,{mode,prompt:r.prompt});return send(env,msg.chat.id,`✅ *Response received.*
+${next.question}`,questionMarkup(next,id));}  if(s.game_type.startsWith('SOCIAL_')){await finishSafeSession(env,s.id,'ANSWERED');const mode=state.mode||'random';const r=socialPrompt(mode,[]);const id=await createSafeSession(env,u.id,msg.chat.id,`SOCIAL_${mode.toUpperCase()}`,{mode,prompt:r.prompt});return send(env,msg.chat.id,`✅ *Response received.*
 
 🎭 *${r.type}*
 
@@ -157,8 +156,7 @@ Nice reaction.`,backGames());}
     return edit(env,chat,mid,titleText,{inline_keyboard:[[{text:'⬅️ VAULT',callback_data:'vault_main'}]]});
   }
   if(d.startsWith('leaderboard:')){
-    const metric=d.split(':')[1], titles={coins:'RICHEST',xp:'XP',wins:'WINS',games:'GAMES',rpg:'RPG',collector:'COLLECTOR',achievements:'ACHIEVEMENTS'};
-    const {leaderboard,formatLeaderboard}=await import('./leaderboards/service.js');
+    const metric=d.split(':')[1], titles={coins:'RICHEST',xp:'XP',wins:'WINS',games:'GAMES',rpg:'RPG',collector:'COLLECTOR',achievements:'ACHIEVEMENTS'};    const {leaderboard,formatLeaderboard}=await import('./leaderboards/service.js');
     const rows=await leaderboard(env,metric,10);
     return edit(env,chat,mid,formatLeaderboard(rows,titles[metric]||'LEADERBOARD'),{inline_keyboard:[[{text:'⬅️ LEADERBOARD',callback_data:'leaderboard_main'}]]});
   }
@@ -197,4 +195,4 @@ export default {async fetch(request,env,ctx){if(request.method==='POST'&&new URL
   const lineAllUsers=fmtRows(allUsers.results,x=>'#'+x.id+' tg='+x.telegram_id+' username='+(x.username||'—')+' damper='+x.damper_id+' role='+x.role);
   await send(env,chat,'🔧 *WALLET IDENTITY DEBUG*\\n━━━━━━━━━━━━━━\\n\\nCurrent Telegram\\n'+id+'\\n\\nAll users\\n'+lineAllUsers+'\\n\\nTelegram matches\\n'+fmtUsers(usersByTelegram.results)+'\\n\\nDamper 001 matches\\n'+fmtUsers(usersByDamper.results)+'\\n\\nWallets 1/3\\n'+lineWallets+'\\n\\nGame results 1/3\\n'+lineResults+'\\n\\nStats 1/3\\n'+lineStats+'\\n\\nSessions 1/3\\n'+lineSessions+'\\n\\nV: owner-001-wallet-identity-debug-r5');
   return new Response('OK');
-}if(update.message?.text?.trim().split(/\\s+/)[0].toLowerCase()==='/menu'){await photo(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());return new Response('OK');}if(update.message){const handled=await handleSafeMessage(env,update.message);if(handled!==false)return new Response('OK');}if(update.callback_query){const handled=await safeCallback(env,update.callback_query);if(handled!==false)return new Response('OK');}}catch(e){console.error('safe wrapper error',e);}}return base.fetch(request,env,ctx);}};
+}if(update.message?.text?.trim().split(/\\s+/)[0].toLowerCase()==='/menu'){await photo(env,update.message.chat.id,'🔥 *THE DAMPER_BOT V2*',mainMenu());return new Response('OK');}if(update.message){const handled=await handleSafeMessage(env,update.message);if(handled!==false)return new Response('OK');}if(update.callback_query){const data=String(update.callback_query.data||'');if(/^(game_|stake:|wager_choice:|mine(?::|_)|session_cancel:)/.test(data))return base.fetch(request,env,ctx);const handled=await safeCallback(env,update.callback_query);if(handled!==false)return new Response('OK');}}catch(e){console.error('safe wrapper error',e);}}return base.fetch(request,env,ctx);}};
